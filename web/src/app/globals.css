@@ -1,26 +1,132 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ----------------------------------------------------------------------------
+   MiniFlow design system
+
+   Aesthetic: a calm, editorial workspace. Warm "paper" surfaces, a soft ink
+   palette, and a single confident coral accent reserved for primary action.
+   Display type is a characterful serif (Fraunces); UI type is a humanist
+   grotesque (Hanken Grotesk).
+---------------------------------------------------------------------------- */
+
+@theme {
+  /* Surfaces */
+  --color-paper: #f6f4ee;
+  --color-surface: #ffffff;
+  --color-sunken: #efece3;
+
+  /* Ink / text */
+  --color-ink: #221e18;
+  --color-muted: #6b645a;
+  --color-faint: #9c9488;
+
+  /* Hairlines */
+  --color-line: #e5e0d4;
+  --color-line-strong: #d6cdbb;
+
+  /* Brand accent — coral */
+  --color-accent: #df4f2c;
+  --color-accent-hover: #c64320;
+  --color-accent-soft: #fbe7df;
+  --color-accent-ink: #7c2a13;
+
+  /* Status tones */
+  --color-success: #2f8a5b;
+  --color-success-soft: #e2f1e8;
+  --color-warning: #b07d18;
+  --color-warning-soft: #f6ecd4;
+  --color-info: #3a6ea5;
+  --color-info-soft: #e4edf6;
+  --color-danger: #bf3a2a;
+  --color-danger-soft: #f8e3df;
+
+  /* Type */
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgba(34, 30, 24, 0.04),
+    0 8px 24px -12px rgba(34, 30, 24, 0.18);
+  --shadow-pop: 0 12px 40px -8px rgba(34, 30, 24, 0.28);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: #ffffff;
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes miniflow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes miniflow-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes miniflow-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes miniflow-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-spin-slow {
+  animation: miniflow-spin 0.7s linear infinite;
+}
+
+.animate-rise {
+  animation: miniflow-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.animate-toast-in {
+  animation: miniflow-toast-in 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.animate-fade-in {
+  animation: miniflow-fade-in 0.2s ease-out both;
 }
