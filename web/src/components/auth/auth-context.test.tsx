@@ -299,3 +299,63 @@ describe("AuthProvider", () => {
     consoleError.mockRestore();
   });
 });
+
+/** A consumer that performs an authenticated request via `useAuth().request`. */
+function RequestProbe() {
+  const { request, status } = useAuth();
+  const [count, setCount] = useState(-1);
+  return (
+    <div>
+      <span data-testid="req-status">{status}</span>
+      <span data-testid="req-count">{count}</span>
+      <button
+        onClick={async () => {
+          const projects = await request<unknown[]>("/projects");
+          setCount(projects.length);
+        }}
+      >
+        load projects
+      </button>
+    </div>
+  );
+}
+
+describe("AuthProvider request()", () => {
+  it("attaches the access token to an authenticated request", async () => {
+    saveSession({ accessToken: "access-1", refreshToken: "refresh-1" });
+    const fetchMock = vi.fn((url: string) => {
+      if (url.endsWith("/me")) {
+        return Promise.resolve(jsonResponse(ADA));
+      }
+      if (url.endsWith("/projects")) {
+        return Promise.resolve(jsonResponse([{ id: "p1" }]));
+      }
+      throw new Error(`unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <AuthProvider>
+        <RequestProbe />
+      </AuthProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("req-status")).toHaveTextContent(
+        "authenticated",
+      ),
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "load projects" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("req-count")).toHaveTextContent("1"),
+    );
+
+    const projectsCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).endsWith("/projects"),
+    ) as unknown as [string, RequestInit] | undefined;
+    const headers = new Headers(projectsCall?.[1]?.headers);
+    expect(headers.get("Authorization")).toBe("Bearer access-1");
+  });
+});

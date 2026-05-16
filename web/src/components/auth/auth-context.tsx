@@ -11,7 +11,12 @@ import {
   useState,
 } from "react";
 
-import { requestWithRefresh } from "@/lib/api";
+import {
+  type AuthedRequest,
+  type AuthedRequestOptions,
+  apiFetch,
+  requestWithRefresh,
+} from "@/lib/api";
 import {
   type LoginInput,
   type SignupInput,
@@ -41,6 +46,11 @@ interface AuthContextValue {
   login: (input: LoginInput) => Promise<void>;
   signup: (input: SignupInput) => Promise<void>;
   logout: () => Promise<void>;
+  /**
+   * Performs an authenticated API request: attaches the current access token
+   * and transparently retries once through silent refresh on a 401.
+   */
+  request: AuthedRequest;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -169,9 +179,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     endSession();
   }, [endSession]);
 
+  /**
+   * Authenticated request helper handed to the rest of the app. Token
+   * attachment and 401 recovery stay here so UI code never touches tokens.
+   */
+  const request = useCallback(
+    <T,>(path: string, options: AuthedRequestOptions = {}): Promise<T> =>
+      requestWithRefresh<T>(
+        (token) => apiFetch<T>(path, { ...options, token }),
+        { accessToken: sessionRef.current?.accessToken ?? null, refresh },
+      ),
+    [refresh],
+  );
+
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, login, signup, logout }),
-    [status, user, login, signup, logout],
+    () => ({ status, user, login, signup, logout, request }),
+    [status, user, login, signup, logout, request],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

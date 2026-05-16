@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { useAuth } from "@/components/auth/auth-context";
@@ -20,7 +21,13 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-6">
-        <Logo />
+        <Link
+          href="/dashboard"
+          aria-label="MiniFlow dashboard"
+          className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+        >
+          <Logo />
+        </Link>
         <div className="flex items-center gap-3">
           {user && (
             <span className="flex items-center gap-2.5">

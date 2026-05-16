@@ -52,6 +52,14 @@ export class ApiError extends Error {
   }
 }
 
+/** Extracts a user-facing message from any thrown value. */
+export function errorMessage(caught: unknown): string {
+  if (caught instanceof ApiError) {
+    return caught.message;
+  }
+  return "Something went wrong. Please try again.";
+}
+
 function fieldNameFromLoc(loc: unknown[] | undefined): string | null {
   if (!Array.isArray(loc)) {
     return null;
@@ -106,6 +114,19 @@ export interface ApiRequestOptions {
   token?: string | null;
   signal?: AbortSignal;
 }
+
+/** Options for an authenticated request; the token is supplied by the caller. */
+export type AuthedRequestOptions = Omit<ApiRequestOptions, "token">;
+
+/**
+ * A bound request function that attaches the current access token and retries
+ * once through silent refresh on a 401. Exposed by the auth provider as
+ * `useAuth().request` — see src/components/auth/auth-context.tsx.
+ */
+export type AuthedRequest = <T>(
+  path: string,
+  options?: AuthedRequestOptions,
+) => Promise<T>;
 
 /** Reads a response body as JSON, tolerating empty or non-JSON payloads. */
 async function readJson(response: Response): Promise<unknown> {

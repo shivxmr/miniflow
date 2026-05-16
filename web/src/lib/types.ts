@@ -17,3 +17,24 @@ export interface TokenPair {
   refresh_token: string;
   token_type: string;
 }
+
+/**
+ * A project the caller belongs to. `role` is the caller's own role within
+ * this project (from `project_members`), used to gate the UI.
+ */
+export interface Project {
+  id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+  role: UserRole;
+}
+
+/** A membership row joining a user to a project with a project-scoped role. */
+export interface ProjectMember {
+  id: string;
+  project_id: string;
+  role: UserRole;
+  user: User;
+}

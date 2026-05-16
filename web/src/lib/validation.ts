@@ -8,6 +8,8 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const PASSWORD_MIN_LENGTH = 8;
 const NAME_MAX_LENGTH = 120;
+const PROJECT_NAME_MAX_LENGTH = 160;
+const PROJECT_DESCRIPTION_MAX_LENGTH = 2000;
 
 /** Returns an error message, or `null` when the email is valid. */
 export function validateEmail(value: string): string | null {
@@ -40,6 +42,26 @@ export function validateName(value: string): string | null {
   }
   if (name.length > NAME_MAX_LENGTH) {
     return `Name must be ${NAME_MAX_LENGTH} characters or fewer`;
+  }
+  return null;
+}
+
+/** Returns an error message, or `null` when the project name is valid. */
+export function validateProjectName(value: string): string | null {
+  const name = value.trim();
+  if (!name) {
+    return "Project name is required";
+  }
+  if (name.length > PROJECT_NAME_MAX_LENGTH) {
+    return `Name must be ${PROJECT_NAME_MAX_LENGTH} characters or fewer`;
+  }
+  return null;
+}
+
+/** Returns an error message, or `null` when the project description is valid. */
+export function validateProjectDescription(value: string): string | null {
+  if (value.length > PROJECT_DESCRIPTION_MAX_LENGTH) {
+    return `Description must be ${PROJECT_DESCRIPTION_MAX_LENGTH} characters or fewer`;
   }
   return null;
 }
