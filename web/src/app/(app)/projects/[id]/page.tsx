@@ -7,11 +7,12 @@ import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { MemberPanel } from "@/components/projects/member-panel";
 import { ProjectFormModal } from "@/components/projects/project-form-modal";
+import { TaskBoard } from "@/components/tasks/task-board";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState, ErrorState } from "@/components/ui/states";
+import { ErrorState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { useResource } from "@/hooks/use-resource";
 import { errorMessage } from "@/lib/api";
@@ -139,25 +140,7 @@ export default function ProjectDetailPage() {
           </header>
 
           <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
-            <EmptyState
-              icon={
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <rect x="3" y="4" width="5" height="16" rx="1.6" fill="currentColor" />
-                  <rect x="9.5" y="4" width="5" height="10" rx="1.6" fill="currentColor" />
-                  <rect
-                    x="16"
-                    y="4"
-                    width="5"
-                    height="13"
-                    rx="1.6"
-                    fill="currentColor"
-                    fillOpacity="0.6"
-                  />
-                </svg>
-              }
-              title="Task board"
-              description="The Kanban board for this project arrives in the next step of the build."
-            />
+            <TaskBoard projectId={projectId} viewerRole={data.role} />
             <MemberPanel projectId={projectId} viewerRole={data.role} />
           </div>
 

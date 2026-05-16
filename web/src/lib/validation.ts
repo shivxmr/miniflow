@@ -10,6 +10,7 @@ const PASSWORD_MIN_LENGTH = 8;
 const NAME_MAX_LENGTH = 120;
 const PROJECT_NAME_MAX_LENGTH = 160;
 const PROJECT_DESCRIPTION_MAX_LENGTH = 2000;
+const TASK_TITLE_MAX_LENGTH = 220;
 
 /** Returns an error message, or `null` when the email is valid. */
 export function validateEmail(value: string): string | null {
@@ -62,6 +63,18 @@ export function validateProjectName(value: string): string | null {
 export function validateProjectDescription(value: string): string | null {
   if (value.length > PROJECT_DESCRIPTION_MAX_LENGTH) {
     return `Description must be ${PROJECT_DESCRIPTION_MAX_LENGTH} characters or fewer`;
+  }
+  return null;
+}
+
+/** Returns an error message, or `null` when the task title is valid. */
+export function validateTaskTitle(value: string): string | null {
+  const title = value.trim();
+  if (!title) {
+    return "Task title is required";
+  }
+  if (title.length > TASK_TITLE_MAX_LENGTH) {
+    return `Title must be ${TASK_TITLE_MAX_LENGTH} characters or fewer`;
   }
   return null;
 }

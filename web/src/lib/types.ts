@@ -38,3 +38,29 @@ export interface ProjectMember {
   role: UserRole;
   user: User;
 }
+
+export type TaskStatus = "todo" | "in_progress" | "done";
+export type TaskPriority = "low" | "medium" | "high";
+
+/** A task belonging to a project, as returned by the tasks API. */
+export interface Task {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  assigned_to: string | null;
+  status: TaskStatus;
+  priority: TaskPriority;
+  due_date: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Paginated response from GET /projects/:id/tasks. */
+export interface TaskListResponse {
+  items: Task[];
+  total: number;
+  limit: number;
+  offset: number;
+}

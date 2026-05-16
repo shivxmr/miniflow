@@ -5,7 +5,7 @@
  */
 
 import type { BadgeTone } from "@/components/ui/badge";
-import type { UserRole } from "./types";
+import type { Task, UserRole } from "./types";
 
 /** Human-readable label for a role. */
 export const ROLE_LABEL: Record<UserRole, string> = {
@@ -36,4 +36,27 @@ export function canManageProject(role: UserRole): boolean {
 /** Admins may invite members, change member roles, and remove members. */
 export function canManageMembers(role: UserRole): boolean {
   return role === "admin";
+}
+
+/** Admins and Members may create tasks; Viewers are read-only. */
+export function canCreateTask(role: UserRole): boolean {
+  return role === "admin" || role === "member";
+}
+
+/**
+ * Returns whether the current user may edit or delete a task.
+ * - Admins may touch any task.
+ * - Members may only touch tasks they created or are assigned to.
+ * - Viewers cannot edit anything.
+ */
+export function canEditTask(
+  role: UserRole,
+  currentUserId: string,
+  task: Pick<Task, "created_by" | "assigned_to">,
+): boolean {
+  if (role === "admin") return true;
+  if (role === "member") {
+    return task.created_by === currentUserId || task.assigned_to === currentUserId;
+  }
+  return false;
 }

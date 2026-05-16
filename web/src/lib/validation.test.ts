@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateEmail, validateName, validatePassword } from "./validation";
+import { validateEmail, validateName, validatePassword, validateTaskTitle } from "./validation";
 
 describe("validateEmail", () => {
   it("requires a value", () => {
@@ -50,5 +50,22 @@ describe("validateName", () => {
 
   it("accepts a reasonable name", () => {
     expect(validateName("Ada Lovelace")).toBeNull();
+  });
+});
+
+describe("validateTaskTitle", () => {
+  it("requires a non-empty value", () => {
+    expect(validateTaskTitle("")).toBe("Task title is required");
+    expect(validateTaskTitle("   ")).toBe("Task title is required");
+  });
+
+  it("rejects titles longer than 220 characters", () => {
+    expect(validateTaskTitle("a".repeat(221))).toBe(
+      "Title must be 220 characters or fewer",
+    );
+  });
+
+  it("accepts a valid title", () => {
+    expect(validateTaskTitle("Fix the login bug")).toBeNull();
   });
 });
