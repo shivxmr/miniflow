@@ -1,0 +1,28 @@
+[project]
+name = "api"
+version = "0.1.0"
+description = "FastAPI backend for MiniFlow"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.18.4",
+    "fastapi>=0.136.1",
+    "httpx>=0.28.1",
+    "psycopg[binary]>=3.3.4",
+    "pydantic-settings>=2.14.1",
+    "pytest>=9.0.3",
+    "ruff>=0.15.13",
+    "sqlalchemy>=2.0.49",
+    "uvicorn[standard]>=0.47.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
