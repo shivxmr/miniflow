@@ -46,4 +46,4 @@ npm run dev
 
 - Step 1: Project scaffolding, repo, tooling, Docker Compose, API health route, web skeleton.
 - Step 2: Mandatory database model, Alembic migration, and seed script.
-
+- Auth API: signup, login, current user, refresh rotation, logout revocation, bcrypt password hashing, JWT access tokens.

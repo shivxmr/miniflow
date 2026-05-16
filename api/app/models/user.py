@@ -12,6 +12,7 @@ from app.models.enums import UserRole, enum_values
 if TYPE_CHECKING:
     from app.models.project import Project
     from app.models.project_member import ProjectMember
+    from app.models.refresh_token import RefreshToken
     from app.models.task import Task
 
 
@@ -44,4 +45,7 @@ class User(Base):
         back_populates="creator",
         foreign_keys="Task.created_by",
         cascade="all, delete-orphan",
+    )
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
     )
