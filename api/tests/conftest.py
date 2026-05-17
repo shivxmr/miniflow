@@ -51,6 +51,9 @@ def client(db_session: Session) -> Generator[TestClient]:
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
+    # Rate limiting is disabled by default so the suite can register many
+    # users; test_rate_limit.py re-enables it explicitly.
+    app.state.limiter.enabled = False
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

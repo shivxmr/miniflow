@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.limiter import limiter
 from app.deps.auth import get_current_user
 from app.models.user import User
 from app.schemas.auth import (
@@ -22,10 +24,12 @@ from app.services.auth import (
 )
 
 router = APIRouter(tags=["auth"])
+settings = get_settings()
 
 
 @router.post("/signup", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-def signup(payload: UserCreate, db: Session = Depends(get_db)) -> User:
+@limiter.limit(settings.auth_rate_limit)
+def signup(request: Request, payload: UserCreate, db: Session = Depends(get_db)) -> User:
     if get_user_by_email(db, payload.email) is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -35,7 +39,8 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)) -> User:
 
 
 @router.post("/login", response_model=TokenPair)
-def login(payload: UserLogin, db: Session = Depends(get_db)) -> TokenPair:
+@limiter.limit(settings.auth_rate_limit)
+def login(request: Request, payload: UserLogin, db: Session = Depends(get_db)) -> TokenPair:
     user = authenticate_user(db, payload.email, payload.password)
     if user is None:
         raise HTTPException(
