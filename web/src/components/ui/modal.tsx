@@ -67,11 +67,12 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          "w-full overflow-hidden rounded-2xl border border-line bg-surface shadow-pop animate-rise",
+          "flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-2xl",
+          "border border-line bg-surface shadow-pop animate-rise",
           size === "sm" ? "max-w-sm" : "max-w-lg",
         )}
       >
-        <header className="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
+        <header className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-6 py-5">
           <div className="min-w-0">
             <h2
               id={titleId}
@@ -99,9 +100,9 @@ export function Modal({
             </svg>
           </button>
         </header>
-        <div className="px-6 py-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
         {footer && (
-          <footer className="flex justify-end gap-3 border-t border-line bg-paper/60 px-6 py-4">
+          <footer className="flex shrink-0 justify-end gap-3 border-t border-line bg-paper/60 px-6 py-4">
             {footer}
           </footer>
         )}
