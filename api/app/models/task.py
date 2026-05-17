@@ -62,3 +62,9 @@ class Task(Base):
         cascade="all, delete-orphan",
         order_by="Subtask.created_at",
     )
+    comments = relationship(
+        "Comment",
+        back_populates="task",
+        cascade="all, delete-orphan",
+        order_by="Comment.created_at",
+    )

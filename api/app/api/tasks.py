@@ -5,11 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.deps.auth import get_current_user
+from app.models.comment import Comment
 from app.models.project import Project
 from app.models.project_member import ProjectMember
 from app.models.subtask import Subtask
 from app.models.task import Task
 from app.models.user import User
+from app.schemas.comment import CommentCreate, CommentRead
 from app.schemas.subtask import (
     SubtaskCreate,
     SubtaskGenerateResponse,
@@ -18,10 +20,16 @@ from app.schemas.subtask import (
 )
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
 from app.services import ai
+from app.services import comment as comment_service
 from app.services import project as project_service
 from app.services import subtask as subtask_service
 from app.services import task as task_service
-from app.services.permissions import can_create_task, can_modify_task
+from app.services.permissions import (
+    can_comment,
+    can_create_task,
+    can_delete_comment,
+    can_modify_task,
+)
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -247,4 +255,63 @@ def delete_subtask(
             detail="You may only modify subtasks of tasks you can edit",
         )
     subtask_service.delete_subtask(db, subtask)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# --- Comments ---------------------------------------------------------------
+
+
+@router.get("/{task_id}/comments", response_model=list[CommentRead])
+def list_comments(
+    loaded: tuple[Task, ProjectMember] = Depends(load_task_with_membership),
+    db: Session = Depends(get_db),
+) -> list[Comment]:
+    """List a task's comments. Any project member, including Viewers, may read."""
+    task, _membership = loaded
+    return comment_service.list_comments(db, task.id)
+
+
+@router.post(
+    "/{task_id}/comments",
+    response_model=CommentRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_comment(
+    payload: CommentCreate,
+    current_user: User = Depends(get_current_user),
+    loaded: tuple[Task, ProjectMember] = Depends(load_task_with_membership),
+    db: Session = Depends(get_db),
+) -> Comment:
+    task, membership = loaded
+    if not can_comment(membership.role):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your project role does not permit commenting",
+        )
+    return comment_service.create_comment(db, task.id, current_user.id, payload.body)
+
+
+@router.delete(
+    "/{task_id}/comments/{comment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_comment(
+    comment_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    loaded: tuple[Task, ProjectMember] = Depends(load_task_with_membership),
+    db: Session = Depends(get_db),
+) -> Response:
+    task, membership = loaded
+    comment = comment_service.get_comment(db, task.id, comment_id)
+    if comment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found",
+        )
+    if not can_delete_comment(membership.role, current_user.id, comment.user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You may only delete your own comments",
+        )
+    comment_service.delete_comment(db, comment)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

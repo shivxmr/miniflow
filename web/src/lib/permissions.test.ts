@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   ROLE_LABEL,
   ROLE_ORDER,
+  canComment,
   canCreateTask,
+  canDeleteComment,
   canEditTask,
   canManageMembers,
   canManageProject,
@@ -43,6 +45,30 @@ describe("permissions", () => {
     expect(canCreateTask("admin")).toBe(true);
     expect(canCreateTask("member")).toBe(true);
     expect(canCreateTask("viewer")).toBe(false);
+  });
+
+  it("admins and members may comment; viewers cannot", () => {
+    expect(canComment("admin")).toBe(true);
+    expect(canComment("member")).toBe(true);
+    expect(canComment("viewer")).toBe(false);
+  });
+
+  describe("canDeleteComment", () => {
+    it("admins may delete any comment", () => {
+      expect(canDeleteComment("admin", "u1", "u2")).toBe(true);
+    });
+
+    it("members may delete their own comment", () => {
+      expect(canDeleteComment("member", "u1", "u1")).toBe(true);
+    });
+
+    it("members cannot delete other people's comments", () => {
+      expect(canDeleteComment("member", "u1", "u2")).toBe(false);
+    });
+
+    it("viewers cannot delete comments", () => {
+      expect(canDeleteComment("viewer", "u1", "u1")).toBe(false);
+    });
   });
 
   describe("canEditTask", () => {

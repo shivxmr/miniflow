@@ -50,3 +50,18 @@ def can_modify_task(role: UserRole, user_id: uuid.UUID, task: Task) -> bool:
     if role == UserRole.MEMBER:
         return user_id in (task.created_by, task.assigned_to)
     return False
+
+
+def can_delete_comment(
+    role: UserRole, user_id: uuid.UUID, comment_user_id: uuid.UUID
+) -> bool:
+    """Whether ``user_id`` may delete a comment authored by ``comment_user_id``.
+
+    Admins may delete any comment. Members may delete only their own. Viewers
+    are read-only and may delete nothing.
+    """
+    if role == UserRole.ADMIN:
+        return True
+    if role == UserRole.MEMBER:
+        return user_id == comment_user_id
+    return False

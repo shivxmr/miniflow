@@ -43,6 +43,27 @@ export function canCreateTask(role: UserRole): boolean {
   return role === "admin" || role === "member";
 }
 
+/** Admins and Members may comment on tasks; Viewers are read-only. */
+export function canComment(role: UserRole): boolean {
+  return role === "admin" || role === "member";
+}
+
+/**
+ * Returns whether the current user may delete a comment.
+ * - Admins may delete any comment.
+ * - Members may delete only their own.
+ * - Viewers are read-only and may delete nothing.
+ */
+export function canDeleteComment(
+  role: UserRole,
+  currentUserId: string,
+  commentAuthorId: string,
+): boolean {
+  if (role === "admin") return true;
+  if (role === "member") return commentAuthorId === currentUserId;
+  return false;
+}
+
 /**
  * Returns whether the current user may edit or delete a task.
  * - Admins may touch any task.

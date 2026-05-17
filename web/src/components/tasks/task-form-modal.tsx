@@ -10,8 +10,15 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError, type AuthedRequest } from "@/lib/api";
 import type { TaskCreateInput, TaskUpdateInput } from "@/lib/tasks-api";
-import type { ProjectMember, Task, TaskPriority, TaskStatus } from "@/lib/types";
+import type {
+  ProjectMember,
+  Task,
+  TaskPriority,
+  TaskStatus,
+  UserRole,
+} from "@/lib/types";
 import { validateTaskTitle } from "@/lib/validation";
+import { CommentThread } from "./comment-thread";
 import { SubtaskList } from "./subtask-list";
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
@@ -45,6 +52,10 @@ export interface TaskFormModalProps {
    * subtask checklist (with AI generation) is shown below the form.
    */
   request?: AuthedRequest;
+  /** The viewer's project role — enables the comment thread in edit mode. */
+  viewerRole?: UserRole;
+  /** The viewer's user id — enables the comment thread in edit mode. */
+  currentUserId?: string;
   onClose: () => void;
   /**
    * Called with a create or update payload. Rejecting with an
@@ -61,6 +72,8 @@ export function TaskFormModal({
   initial,
   members,
   request,
+  viewerRole,
+  currentUserId,
   onClose,
   onSubmit,
 }: TaskFormModalProps) {
@@ -225,6 +238,19 @@ export function TaskFormModal({
       {!isCreate && request && initial?.id && (
         <SubtaskList request={request} taskId={initial.id} />
       )}
+
+      {!isCreate &&
+        request &&
+        initial?.id &&
+        viewerRole &&
+        currentUserId && (
+          <CommentThread
+            request={request}
+            taskId={initial.id}
+            viewerRole={viewerRole}
+            currentUserId={currentUserId}
+          />
+        )}
       </div>
     </Modal>
   );

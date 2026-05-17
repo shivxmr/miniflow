@@ -73,3 +73,18 @@ export interface Subtask {
   is_done: boolean;
   created_at: string;
 }
+
+/** The author shown alongside a comment. */
+export interface CommentAuthor {
+  id: string;
+  name: string;
+}
+
+/** A message posted by a user on a task. */
+export interface Comment {
+  id: string;
+  task_id: string;
+  body: string;
+  created_at: string;
+  author: CommentAuthor;
+}

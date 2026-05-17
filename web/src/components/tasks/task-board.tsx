@@ -405,6 +405,8 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
         initial={editTask ?? undefined}
         members={memberList}
         request={request}
+        viewerRole={viewerRole}
+        currentUserId={user?.id}
         onClose={() => setEditTask(null)}
         onSubmit={handleEdit}
       />
