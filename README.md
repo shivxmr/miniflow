@@ -168,6 +168,9 @@ Set `DATABASE_URL`, `SECRET_KEY`, `LLM_API_KEY`, and
 
 **Web (Vercel)** — set `NEXT_PUBLIC_API_URL` to the Render API URL.
 
+Full click-by-click instructions are in [`docs/DEPLOY.md`](docs/DEPLOY.md).
+A Render blueprint ([`render.yaml`](render.yaml)) provisions the API service.
+
 ---
 
 ## License

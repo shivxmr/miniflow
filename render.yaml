@@ -1,0 +1,30 @@
+# Render blueprint for the MiniFlow API.
+#
+# Database: create a free Postgres on Neon (https://neon.tech) and paste its
+# connection string as DATABASE_URL when prompted (sync: false vars below).
+#
+# Deploy: in Render, "New +" -> "Blueprint" -> point at this repo.
+services:
+  - type: web
+    name: miniflow-api
+    runtime: python
+    plan: free
+    rootDir: api
+    buildCommand: pip install uv && uv sync --frozen
+    startCommand: >-
+      uv run alembic upgrade head &&
+      uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      # Auto-generated strong JWT signing key.
+      - key: SECRET_KEY
+        generateValue: true
+      # Set these in the Render dashboard after creating the service.
+      - key: DATABASE_URL          # Neon connection string
+        sync: false
+      - key: LLM_API_KEY           # OpenRouter API key
+        sync: false
+      - key: BACKEND_CORS_ORIGINS  # the Vercel web URL, e.g. https://miniflow.vercel.app
+        sync: false
+      - key: LLM_MODEL
+        value: openai/gpt-oss-120b:free

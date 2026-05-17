@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -39,6 +39,19 @@ class Settings(BaseSettings):
     auth_rate_limit: str = Field(default="10/minute", alias="AUTH_RATE_LIMIT")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_psycopg_driver(cls, value: str) -> str:
+        """Pin the psycopg driver on bare ``postgresql://`` URLs.
+
+        Managed Postgres providers (Neon, Render) hand out plain
+        ``postgresql://`` connection strings; SQLAlchemy needs the driver
+        named explicitly. This lets such a string be pasted in verbatim.
+        """
+        if value.startswith("postgresql://"):
+            return "postgresql+psycopg://" + value.removeprefix("postgresql://")
+        return value
 
 
 @lru_cache
