@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { useAuth } from "@/components/auth/auth-context";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 
@@ -29,6 +30,7 @@ export function AppHeader() {
           <Logo />
         </Link>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           {user && (
             <span className="flex items-center gap-2.5">
               <span

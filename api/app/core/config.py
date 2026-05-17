@@ -21,6 +21,23 @@ class Settings(BaseSettings):
         alias="BACKEND_CORS_ORIGINS",
     )
 
+    # --- LLM (AI subtask generation) ---
+    # Provider is OpenAI-compatible; OpenRouter is the default. The API key is
+    # read from the environment and never committed.
+    llm_provider: str = Field(default="openrouter", alias="LLM_PROVIDER")
+    llm_api_key: str = Field(default="", alias="LLM_API_KEY")
+    llm_model: str = Field(
+        default="openai/gpt-oss-120b:free",
+        alias="LLM_MODEL",
+    )
+    llm_base_url: str = Field(
+        default="https://openrouter.ai/api/v1",
+        alias="LLM_BASE_URL",
+    )
+
+    # --- Rate limiting ---
+    auth_rate_limit: str = Field(default="10/minute", alias="AUTH_RATE_LIMIT")
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

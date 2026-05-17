@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError } from "@/lib/api";
+import { ApiError, type AuthedRequest } from "@/lib/api";
 import type { TaskCreateInput, TaskUpdateInput } from "@/lib/tasks-api";
 import type { ProjectMember, Task, TaskPriority, TaskStatus } from "@/lib/types";
 import { validateTaskTitle } from "@/lib/validation";
+import { SubtaskList } from "./subtask-list";
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
   { value: "todo", label: "To Do" },
@@ -39,6 +40,11 @@ export interface TaskFormModalProps {
   initial?: Task;
   /** Members shown in the assignee dropdown. */
   members: ProjectMember[];
+  /**
+   * Authenticated request function. When supplied in edit mode, the task's
+   * subtask checklist (with AI generation) is shown below the form.
+   */
+  request?: AuthedRequest;
   onClose: () => void;
   /**
    * Called with a create or update payload. Rejecting with an
@@ -54,6 +60,7 @@ export function TaskFormModal({
   projectId,
   initial,
   members,
+  request,
   onClose,
   onSubmit,
 }: TaskFormModalProps) {
@@ -160,6 +167,7 @@ export function TaskFormModal({
         </>
       }
     >
+      <div className="flex flex-col gap-5">
       <form
         id={formId}
         onSubmit={handleSubmit}
@@ -213,6 +221,11 @@ export function TaskFormModal({
           />
         </div>
       </form>
+
+      {!isCreate && request && initial?.id && (
+        <SubtaskList request={request} taskId={initial.id} />
+      )}
+      </div>
     </Modal>
   );
 }

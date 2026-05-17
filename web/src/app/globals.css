@@ -50,6 +50,50 @@
   --shadow-pop: 0 12px 40px -8px rgba(34, 30, 24, 0.28);
 }
 
+/* ----------------------------------------------------------------------------
+   Dark theme — a warm charcoal counterpart to the paper palette. Applied by
+   setting data-theme="dark" on <html>; the @theme variables above are simply
+   re-pointed, so every utility class adapts automatically.
+---------------------------------------------------------------------------- */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --color-paper: #181612;
+  --color-surface: #221f1a;
+  --color-sunken: #2c2820;
+
+  /* Ink / text */
+  --color-ink: #f1ede3;
+  --color-muted: #a8a08f;
+  --color-faint: #756f62;
+
+  /* Hairlines */
+  --color-line: #322e27;
+  --color-line-strong: #443f35;
+
+  /* Brand accent — coral, lifted slightly for contrast on dark */
+  --color-accent: #e85c39;
+  --color-accent-hover: #f06f4e;
+  --color-accent-soft: #3a241c;
+  --color-accent-ink: #f6bca8;
+
+  /* Status tones */
+  --color-success: #4fb27f;
+  --color-success-soft: #1d3328;
+  --color-warning: #d6a648;
+  --color-warning-soft: #362f1c;
+  --color-info: #6fa0d4;
+  --color-info-soft: #1e2d3c;
+  --color-danger: #e56b56;
+  --color-danger-soft: #3b231f;
+
+  /* Elevation — deeper shadows read better on dark surfaces */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 12px 40px -8px rgba(0, 0, 0, 0.7);
+}
+
 html {
   -webkit-text-size-adjust: 100%;
 }

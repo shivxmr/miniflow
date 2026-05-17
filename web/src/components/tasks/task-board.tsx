@@ -1,6 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
+import {
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 
 import { useAuth } from "@/components/auth/auth-context";
 import { Button } from "@/components/ui/button";
@@ -64,6 +74,11 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
     [projectId],
   );
 
+  // A small drag threshold so clicking a card's buttons never starts a drag.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
   const canCreate = canCreateTask(viewerRole);
 
   async function handleCreate(input: TaskCreateInput | TaskUpdateInput) {
@@ -98,6 +113,29 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
     } finally {
       setDeleting(false);
     }
+  }
+
+  /** Move a task to the column it was dropped on. */
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over) return;
+    const items = tasks.data?.items ?? [];
+    const task = items.find((t) => t.id === String(active.id));
+    const newStatus = over.id as TaskStatus;
+    if (!task || task.status === newStatus) return;
+
+    updateTask(request, task.id, { status: newStatus })
+      .then(() => {
+        showToast({ title: "Task moved", tone: "success" });
+        tasks.reload();
+      })
+      .catch((caught) => {
+        showToast({
+          title: "Could not move task",
+          description: errorMessage(caught),
+          tone: "error",
+        });
+      });
   }
 
   function openEdit(task: Task) {
@@ -241,44 +279,46 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
 
       {/* Board view */}
       {!tasks.loading && !tasks.error && viewMode === "board" && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {COLUMNS.map(({ status, label, emptyMsg }) => {
-            const columnTasks = allTasks.filter((t) => t.status === status);
-            return (
-              <div key={status} className="flex flex-col gap-3">
-                <div
-                  className={`flex items-center justify-between rounded-t-lg border border-b-2 border-line bg-surface/70 px-3 py-2.5 ${STATUS_HEADER_CLASS[status]}`}
-                >
-                  <span className="text-sm font-semibold text-ink">
-                    {label}
-                  </span>
-                  <span className="rounded-full bg-sunken px-2 py-0.5 text-xs font-medium text-muted">
-                    {columnTasks.length}
-                  </span>
-                </div>
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {COLUMNS.map(({ status, label, emptyMsg }) => {
+              const columnTasks = allTasks.filter((t) => t.status === status);
+              return (
+                <div key={status} className="flex flex-col gap-3">
+                  <div
+                    className={`flex items-center justify-between rounded-t-lg border border-b-2 border-line bg-surface/70 px-3 py-2.5 ${STATUS_HEADER_CLASS[status]}`}
+                  >
+                    <span className="text-sm font-semibold text-ink">
+                      {label}
+                    </span>
+                    <span className="rounded-full bg-sunken px-2 py-0.5 text-xs font-medium text-muted">
+                      {columnTasks.length}
+                    </span>
+                  </div>
 
-                <div className="flex flex-col gap-2.5">
-                  {columnTasks.length === 0 ? (
-                    <div className="flex items-center justify-center rounded-xl border border-dashed border-line py-10 text-center">
-                      <p className="text-xs text-muted">{emptyMsg}</p>
-                    </div>
-                  ) : (
-                    columnTasks.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        members={memberList}
-                        canEdit={taskCanEdit(task)}
-                        onEdit={openEdit}
-                        onDelete={openDelete}
-                      />
-                    ))
-                  )}
+                  <DroppableColumn status={status}>
+                    {columnTasks.length === 0 ? (
+                      <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-line py-10 text-center">
+                        <p className="text-xs text-muted">{emptyMsg}</p>
+                      </div>
+                    ) : (
+                      columnTasks.map((task) => (
+                        <DraggableTaskCard
+                          key={task.id}
+                          task={task}
+                          members={memberList}
+                          canEdit={taskCanEdit(task)}
+                          onEdit={openEdit}
+                          onDelete={openDelete}
+                        />
+                      ))
+                    )}
+                  </DroppableColumn>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </DndContext>
       )}
 
       {/* List view */}
@@ -364,6 +404,7 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
         mode="edit"
         initial={editTask ?? undefined}
         members={memberList}
+        request={request}
         onClose={() => setEditTask(null)}
         onSubmit={handleEdit}
       />
@@ -384,5 +425,70 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
         onClose={() => setDeleteTarget(null)}
       />
     </section>
+  );
+}
+
+/** A Kanban column that highlights and accepts dropped task cards. */
+function DroppableColumn({
+  status,
+  children,
+}: {
+  status: TaskStatus;
+  children: ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: status });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex min-h-24 flex-1 flex-col gap-2.5 rounded-xl transition-colors ${
+        isOver ? "bg-accent-soft/50 ring-1 ring-accent/30" : ""
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+interface DraggableTaskCardProps {
+  task: Task;
+  members: ProjectMember[];
+  canEdit: boolean;
+  onEdit: (task: Task) => void;
+  onDelete: (task: Task) => void;
+}
+
+/** A task card draggable between columns when the user may edit the task. */
+function DraggableTaskCard({
+  task,
+  members,
+  canEdit,
+  onEdit,
+  onDelete,
+}: DraggableTaskCardProps) {
+  const { listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: task.id,
+    disabled: !canEdit,
+  });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.4 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={canEdit ? "cursor-grab touch-none active:cursor-grabbing" : undefined}
+      {...(canEdit ? listeners : {})}
+    >
+      <TaskCard
+        task={task}
+        members={members}
+        canEdit={canEdit}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
+    </div>
   );
 }

@@ -56,3 +56,9 @@ class Task(Base):
     project = relationship("Project", back_populates="tasks")
     assignee = relationship("User", back_populates="assigned_tasks", foreign_keys=[assigned_to])
     creator = relationship("User", back_populates="created_tasks", foreign_keys=[created_by])
+    subtasks = relationship(
+        "Subtask",
+        back_populates="task",
+        cascade="all, delete-orphan",
+        order_by="Subtask.created_at",
+    )

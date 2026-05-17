@@ -102,6 +102,9 @@ function stubRequests(
 
   requestMock.mockImplementation(
     (path: string, options?: { method?: string }) => {
+      if (path.includes("/subtasks") && !options) {
+        return Promise.resolve([]);
+      }
       if (path.includes("/tasks") && !options) {
         return Promise.resolve(tasks);
       }

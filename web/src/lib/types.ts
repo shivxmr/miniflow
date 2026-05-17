@@ -64,3 +64,12 @@ export interface TaskListResponse {
   limit: number;
   offset: number;
 }
+
+/** A checklist item belonging to a task. May be added manually or by AI. */
+export interface Subtask {
+  id: string;
+  task_id: string;
+  title: string;
+  is_done: boolean;
+  created_at: string;
+}
