@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
+from app.api.ai_errors import ai_errors
 from app.core.database import get_db
 from app.deps.auth import get_current_user
 from app.models.comment import Comment
@@ -186,20 +187,8 @@ def generate_subtasks(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your project role does not permit generating subtasks",
         )
-    try:
+    with ai_errors():
         suggestions = ai.generate_subtask_titles(task.title, task.description)
-    except ai.AINotConfigured as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
-        ) from exc
-    except ai.AIInvalidResponse as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
-        ) from exc
-    except ai.AIServiceError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)
-        ) from exc
     return SubtaskGenerateResponse(suggestions=suggestions)
 
 

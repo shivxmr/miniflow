@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { MemberPanel } from "@/components/projects/member-panel";
 import { ProjectFormModal } from "@/components/projects/project-form-modal";
+import { ProjectSummary } from "@/components/projects/project-summary";
 import { TaskBoard } from "@/components/tasks/task-board";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -118,25 +119,28 @@ export default function ProjectDetailPage() {
               )}
             </div>
 
-            {canManageProject(data.role) && (
-              <div className="flex shrink-0 gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setEditOpen(true)}
-                >
-                  Edit
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="hover:text-danger"
-                  onClick={() => setDeleteOpen(true)}
-                >
-                  Delete
-                </Button>
-              </div>
-            )}
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <ProjectSummary request={request} projectId={projectId} />
+              {canManageProject(data.role) && (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setEditOpen(true)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hover:text-danger"
+                    onClick={() => setDeleteOpen(true)}
+                  >
+                    Delete
+                  </Button>
+                </>
+              )}
+            </div>
           </header>
 
           <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">

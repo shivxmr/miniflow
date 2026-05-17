@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
+from app.api.ai_errors import ai_errors
 from app.core.database import get_db
 from app.deps.auth import get_current_user
 from app.deps.rbac import get_project_membership, require_project_role
@@ -16,9 +17,11 @@ from app.schemas.project import (
     ProjectCreate,
     ProjectMemberRead,
     ProjectRead,
+    ProjectSummaryResponse,
     ProjectUpdate,
 )
 from app.schemas.task import TaskListResponse, TaskRead
+from app.services import ai
 from app.services import project as project_service
 from app.services import task as task_service
 from app.services.auth import get_user_by_email
@@ -117,6 +120,24 @@ def list_project_tasks(
         limit=limit,
         offset=offset,
     )
+
+
+@router.post("/{project_id}/ai/summary", response_model=ProjectSummaryResponse)
+def summarize_project(
+    project_id: uuid.UUID,
+    membership: ProjectMember = Depends(get_project_membership),
+    db: Session = Depends(get_db),
+) -> ProjectSummaryResponse:
+    """Generate a one-paragraph AI status summary of the project.
+
+    Any project member, including Viewers, may request a summary — it is
+    read-only and persists nothing.
+    """
+    project = db.get(Project, project_id)
+    tasks, _total = task_service.list_tasks(db, project_id, limit=200)
+    with ai_errors():
+        summary = ai.generate_project_summary(project.name, tasks)
+    return ProjectSummaryResponse(summary=summary)
 
 
 @router.get("/{project_id}/members", response_model=list[ProjectMemberRead])

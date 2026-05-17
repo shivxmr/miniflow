@@ -44,3 +44,9 @@ class ProjectMemberRead(BaseModel):
     user: UserRead
 
     model_config = {"from_attributes": True}
+
+
+class ProjectSummaryResponse(BaseModel):
+    """An AI-generated plain-text progress summary of a project."""
+
+    summary: str
