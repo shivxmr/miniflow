@@ -3,8 +3,9 @@
 A lightweight project-management platform — projects, a Kanban task board,
 team roles, and AI-assisted task breakdowns. Inspired by Asana and Trello.
 
-> **Live demo:** _to be added after deployment_
-> &nbsp;&nbsp;Web → Vercel · API → Render · Database → Neon
+> **Live demo:** **https://miniflow-asana.vercel.app**
+> &nbsp;&nbsp;Web on Vercel · API ([miniflow-api.onrender.com](https://miniflow-api.onrender.com)) on Render · Database on Neon
+> &nbsp;&nbsp;_Render's free tier sleeps when idle — the first request may take ~30s to wake._
 
 ---
 
