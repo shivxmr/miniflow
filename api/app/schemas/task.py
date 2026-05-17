@@ -48,3 +48,23 @@ class TaskListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class GenerateTasksRequest(BaseModel):
+    """Free text to be turned into draft tasks by the AI."""
+
+    text: str = Field(min_length=1, max_length=4000)
+
+
+class TaskDraft(BaseModel):
+    """An AI-suggested task the user reviews and edits before creating it."""
+
+    title: str
+    description: str
+    priority: TaskPriority
+
+
+class TaskDraftsResponse(BaseModel):
+    """AI-suggested draft tasks, returned for the user to review and create."""
+
+    drafts: list[TaskDraft]

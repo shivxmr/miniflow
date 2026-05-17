@@ -20,7 +20,13 @@ from app.schemas.project import (
     ProjectSummaryResponse,
     ProjectUpdate,
 )
-from app.schemas.task import TaskListResponse, TaskRead
+from app.schemas.task import (
+    GenerateTasksRequest,
+    TaskDraft,
+    TaskDraftsResponse,
+    TaskListResponse,
+    TaskRead,
+)
 from app.services import ai
 from app.services import project as project_service
 from app.services import task as task_service
@@ -138,6 +144,24 @@ def summarize_project(
     with ai_errors():
         summary = ai.generate_project_summary(project.name, tasks)
     return ProjectSummaryResponse(summary=summary)
+
+
+@router.post("/{project_id}/ai/tasks", response_model=TaskDraftsResponse)
+def draft_tasks_from_text(
+    project_id: uuid.UUID,
+    payload: GenerateTasksRequest,
+    membership: ProjectMember = Depends(
+        require_project_role(UserRole.ADMIN, UserRole.MEMBER)
+    ),
+) -> TaskDraftsResponse:
+    """Turn a free-text note into reviewable draft tasks.
+
+    Drafts are returned for the client to review and edit; nothing is created
+    until the client posts them to ``POST /tasks``. Viewers may not draft.
+    """
+    with ai_errors():
+        drafts = ai.generate_tasks_from_text(payload.text)
+    return TaskDraftsResponse(drafts=[TaskDraft(**draft) for draft in drafts])
 
 
 @router.get("/{project_id}/members", response_model=list[ProjectMemberRead])

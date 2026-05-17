@@ -287,6 +287,28 @@ describe("TaskBoard", () => {
     expect(screen.getByText("No completed tasks yet.")).toBeInTheDocument();
   });
 
+  it("opens the AI task-draft modal from the toolbar", async () => {
+    stubRequests();
+    render(<TaskBoard projectId="p1" viewerRole="admin" />);
+    await screen.findByText("Todo task");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Draft with AI/i }),
+    );
+
+    expect(screen.getByLabelText("Describe the work")).toBeInTheDocument();
+  });
+
+  it("hides the AI task-draft button for viewers", async () => {
+    stubRequests();
+    render(<TaskBoard projectId="p1" viewerRole="viewer" />);
+    await screen.findByText("Todo task");
+
+    expect(
+      screen.queryByRole("button", { name: /Draft with AI/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows the error state when the task fetch fails", async () => {
     requestMock.mockImplementation((path: string) => {
       if (path.includes("/members")) return Promise.resolve(MEMBERS);

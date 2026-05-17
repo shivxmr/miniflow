@@ -213,3 +213,81 @@ def generate_subtask_titles(title: str, description: str | None) -> list[str]:
         max_tokens=600,
     )
     return _extract_titles(content)
+
+
+# --- Plain-English task drafting --------------------------------------------
+
+MAX_TASK_DRAFTS = 15
+_VALID_PRIORITIES = frozenset({"low", "medium", "high"})
+
+_TASK_DRAFT_SYSTEM_PROMPT = (
+    "You turn a free-text note into a list of concrete project tasks. Reply "
+    "with ONLY a JSON array of objects — no prose, no markdown. Each object "
+    'has "title" (a short actionable phrase, 3-12 words), "description" (one '
+    "or two sentences of detail, may be an empty string), and \"priority\" "
+    '(exactly one of "low", "medium", "high"). Return at most '
+    f"{MAX_TASK_DRAFTS} tasks, ordered as they should be tackled."
+)
+
+
+def _extract_task_drafts(content: str) -> list[dict[str, str]]:
+    """Parse a model reply into a clean list of draft-task dicts.
+
+    Tolerates markdown fences and surrounding prose by extracting the first
+    ``[...]`` JSON array. Each usable item yields a dict with ``title``,
+    ``description`` and a ``priority`` clamped to low/medium/high. Raises
+    :class:`AIInvalidResponse` if nothing usable can be recovered.
+    """
+    text = content.strip()
+    start = text.find("[")
+    end = text.rfind("]")
+    if start == -1 or end == -1 or end < start:
+        raise AIInvalidResponse("The AI did not return a list of tasks.")
+
+    try:
+        parsed = json.loads(text[start : end + 1])
+    except json.JSONDecodeError as exc:
+        raise AIInvalidResponse("The AI returned a response that could not be read.") from exc
+
+    if not isinstance(parsed, list):
+        raise AIInvalidResponse("The AI did not return a list of tasks.")
+
+    drafts: list[dict[str, str]] = []
+    for item in parsed:
+        if not isinstance(item, dict):
+            continue
+        title = item.get("title")
+        if not isinstance(title, str) or not title.strip():
+            continue
+        description = item.get("description")
+        description = description.strip() if isinstance(description, str) else ""
+        priority = item.get("priority")
+        priority = priority.strip().lower() if isinstance(priority, str) else ""
+        if priority not in _VALID_PRIORITIES:
+            priority = "medium"
+        drafts.append(
+            {
+                "title": title.strip()[:220],
+                "description": description[:4000],
+                "priority": priority,
+            }
+        )
+
+    if not drafts:
+        raise AIInvalidResponse("The AI did not suggest any tasks.")
+    return drafts[:MAX_TASK_DRAFTS]
+
+
+def generate_tasks_from_text(text: str) -> list[dict[str, str]]:
+    """Ask the configured LLM to turn free text into draft tasks.
+
+    Returns a list of at most :data:`MAX_TASK_DRAFTS` dicts, each with a
+    ``title``, ``description`` and a ``priority`` of low/medium/high. The
+    drafts are not persisted — the caller reviews them and creates real tasks.
+    """
+    content = _chat(
+        _TASK_DRAFT_SYSTEM_PROMPT,
+        f"Notes:\n{text.strip()}",
+        max_tokens=800,
+    )
+    return _extract_task_drafts(content)

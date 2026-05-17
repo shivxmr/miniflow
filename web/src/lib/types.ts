@@ -74,6 +74,13 @@ export interface Subtask {
   created_at: string;
 }
 
+/** An AI-suggested task, returned for the user to review before creating. */
+export interface TaskDraft {
+  title: string;
+  description: string;
+  priority: TaskPriority;
+}
+
 /** The author shown alongside a comment. */
 export interface CommentAuthor {
   id: string;

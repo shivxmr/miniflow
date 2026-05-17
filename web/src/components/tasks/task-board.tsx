@@ -32,6 +32,7 @@ import {
 import type { ProjectMember, Task, TaskStatus, UserRole } from "@/lib/types";
 import { listMembers } from "@/lib/projects-api";
 import { TaskCard, TaskRow } from "./task-card";
+import { TaskDraftModal } from "./task-draft-modal";
 import { TaskFormModal } from "./task-form-modal";
 
 const COLUMNS: { status: TaskStatus; label: string; emptyMsg: string }[] = [
@@ -60,6 +61,7 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
 
   const [viewMode, setViewMode] = useState<ViewMode>("board");
   const [createOpen, setCreateOpen] = useState(false);
+  const [draftOpen, setDraftOpen] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -85,6 +87,14 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
     await createTask(request, input as TaskCreateInput);
     setCreateOpen(false);
     showToast({ title: "Task created", tone: "success" });
+    tasks.reload();
+  }
+
+  function handleDraftsCreated(count: number) {
+    showToast({
+      title: `${count} task${count === 1 ? "" : "s"} added`,
+      tone: "success",
+    });
     tasks.reload();
   }
 
@@ -219,28 +229,54 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
         </div>
 
         {canCreate && (
-          <Button
-            size="sm"
-            onClick={() => setCreateOpen(true)}
-            id="new-task-btn"
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 16 16"
-              fill="none"
-              aria-hidden="true"
-              className="mr-1.5"
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setDraftOpen(true)}
             >
-              <path
-                d="M8 2v12M2 8h12"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-            New task
-          </Button>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+                className="mr-1.5"
+              >
+                <path
+                  d="M8 1.5l1.6 3.9L13.5 7 9.6 8.6 8 12.5 6.4 8.6 2.5 7l3.9-1.6L8 1.5z"
+                  fill="currentColor"
+                />
+                <path
+                  d="M13 11l.7 1.8L15.5 13.5 13.7 14.2 13 16l-.7-1.8L10.5 13.5l1.8-.7L13 11z"
+                  fill="currentColor"
+                />
+              </svg>
+              Draft with AI
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setCreateOpen(true)}
+              id="new-task-btn"
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+                className="mr-1.5"
+              >
+                <path
+                  d="M8 2v12M2 8h12"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              New task
+            </Button>
+          </div>
         )}
       </div>
 
@@ -396,6 +432,15 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
         members={memberList}
         onClose={() => setCreateOpen(false)}
         onSubmit={handleCreate}
+      />
+
+      {/* AI task-draft modal */}
+      <TaskDraftModal
+        open={draftOpen}
+        onClose={() => setDraftOpen(false)}
+        request={request}
+        projectId={projectId}
+        onCreated={handleDraftsCreated}
       />
 
       {/* Edit modal */}
