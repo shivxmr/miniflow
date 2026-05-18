@@ -15,7 +15,7 @@ design, the data model, and the engineering tradeoffs behind them.
 | Backend  | FastAPI (Python 3.12), SQLAlchemy 2.0 (typed), Alembic        |
 | Database | PostgreSQL 16                                                 |
 | Auth     | Hand-built JWT (access + refresh), bcrypt password hashing    |
-| AI       | OpenRouter (OpenAI-compatible) for subtask generation         |
+| AI       | OpenRouter (OpenAI-compatible) for the in-product AI features |
 | Tooling  | `uv` (Python), `pnpm` (JS), `ruff`, `pytest`, `vitest`        |
 
 The repo is a monorepo with two deployable apps:
@@ -199,26 +199,53 @@ Notes:
 
 ---
 
-## 5. AI feature — Generate Subtasks
+## 5. AI features
 
-A task can be broken into a checklist by AI. `POST /tasks/{id}/subtasks/generate`
-sends the task title and description to an LLM and asks for a JSON array of
-short subtask titles.
+MiniFlow ships three AI features. All call an OpenAI-compatible
+chat-completions endpoint (OpenRouter by default) and share the same
+infrastructure: a `_chat()` helper in `services/ai.py` issues every request,
+and an `ai_errors()` context manager in `api/ai_errors.py` maps failures to
+HTTP statuses for every route.
 
-Design choices:
+### Generate Subtasks
+
+`POST /tasks/{id}/subtasks/generate` sends a task's title and description to
+the LLM and asks for a JSON array of short subtask titles. Admins and Members
+may generate; the suggestions are returned for review, not saved.
+
+### Project progress summary
+
+`POST /projects/{id}/ai/summary` lists a project's tasks grouped by status
+(to do / in progress / done) with their priority and due date, and asks for a
+short plain-text progress paragraph — what is done, what is in flight, and any
+notable blockers or overdue work. Any project member, **including Viewers**,
+may request one; it is read-only and persists nothing.
+
+### Draft tasks from plain text
+
+`POST /projects/{id}/ai/tasks` turns a free-text note into a list of draft
+tasks, each a `{title, description, priority}` object. Admins and Members may
+draft. The reply is parsed defensively (see below), priorities are clamped to
+low/medium/high, and the count is capped. Drafts are returned for the user to
+review and edit; the client then creates the kept ones as real tasks via the
+normal `POST /tasks` endpoint — the draft endpoint itself persists nothing.
+
+### Shared design
 
 - **Provider-agnostic:** any OpenAI-compatible endpoint works; the default is
-  OpenRouter with a free model (`openai/gpt-oss-120b:free`). Configured purely
-  by environment variables (`LLM_*`).
-- **Strict parsing:** the model reply is parsed defensively — markdown fences
-  and surrounding prose are tolerated, the first JSON array is extracted,
-  non-string and blank items are dropped, and the list is capped at 10.
-- **Graceful failure** with typed exceptions mapped to clean HTTP statuses —
-  no key → `503`, upstream/network error → `502`, unparseable reply → `422`.
-  The UI shows a friendly message and stays usable.
-- **Human in the loop:** `/generate` does **not** persist anything. It returns
-  suggestions; the user reviews, edits, and chooses which to save as real
-  subtasks.
+  OpenRouter with a free model (`openai/gpt-oss-120b:free`). Provider, model,
+  key, and base URL are all configured by environment variables (`LLM_*`).
+- **Strict parsing:** model replies that should be JSON are parsed defensively
+  — markdown fences and surrounding prose are tolerated, the first JSON array
+  is extracted, malformed items are dropped, and lists are capped (10
+  subtasks, 15 task drafts).
+- **Graceful failure** with typed exceptions mapped to clean HTTP statuses by
+  the shared `ai_errors()` helper — no key → `503`, upstream/network error →
+  `502`, unparseable reply → `422`. The UI shows a friendly message and stays
+  usable.
+- **Human in the loop:** no AI endpoint writes to the database. Each returns a
+  proposal — subtasks, a summary, or task drafts — and the person reviews,
+  edits, and decides what (if anything) to keep.
 
 ---
 

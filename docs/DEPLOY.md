@@ -70,7 +70,7 @@ The repo includes [`render.yaml`](../render.yaml), a Render blueprint.
    (no trailing slash) and let the API redeploy.
 2. Open the Vercel URL and run the full flow end to end:
    sign up → create a project → add a member → create and move tasks →
-   generate AI subtasks.
+   try the AI features (generate subtasks, summarize a project, draft tasks).
 3. Update the **Live demo** line at the top of [`README.md`](../README.md)
    with the Vercel URL.
 

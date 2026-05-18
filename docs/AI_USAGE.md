@@ -70,31 +70,44 @@ The following are understood well enough to explain and modify without AI:
   permission checks are only cosmetic.
 - **The data model and migrations** — the table relationships, the cascade
   rules, and why schema changes go through Alembic.
-- **The AI feature's failure modes** — what happens with no API key, an
+- **The AI features' failure modes** — what happens with no API key, an
   unreachable provider, or a malformed model reply, and the HTTP status each
   maps to.
 
 ---
 
-## 2. The AI feature inside the product
+## 2. The AI features inside the product
 
-MiniFlow ships one AI feature: **Generate Subtasks**.
+MiniFlow ships three AI features, all built on the same OpenRouter
+integration and the same failure model:
 
-- **What it does:** on a task, "Generate with AI" sends the task's title and
-  description to an LLM and asks for a short checklist of subtasks.
+- **Generate Subtasks** — on a task, "Generate with AI" asks an LLM for a
+  short checklist of subtasks from the task's title and description.
+- **Project progress summary** — "Summarize progress" on a project asks the
+  LLM for a one-paragraph status report built from the project's tasks
+  grouped by status. It is read-only, so any member — Viewers included — may
+  run it.
+- **Draft tasks from text** — "Draft with AI" on the task board turns a
+  free-text note into a list of `{title, description, priority}` drafts the
+  user reviews, edits, and bulk-creates as real tasks.
+
+Common design across all three:
+
 - **Provider:** OpenRouter (an OpenAI-compatible API). The default model is a
   free one, `openai/gpt-oss-120b:free`; provider, model, and key are all set
-  via `LLM_*` environment variables, so it is easy to swap.
-- **Structured output:** the model is prompted to return only a JSON array of
-  title strings. Parsing is defensive — markdown fences and stray prose are
-  tolerated, the first JSON array is extracted, blank/non-string items are
-  dropped, and the list is capped at 10.
+  via `LLM_*` environment variables, so it is easy to swap. A single shared
+  `_chat()` helper issues the request for every feature.
+- **Structured output:** features that need a list prompt the model for JSON
+  only and parse it defensively — markdown fences and stray prose are
+  tolerated, the first JSON array is extracted, malformed items are dropped,
+  and the result is capped (10 subtasks, 15 task drafts).
 - **Graceful failure:** a missing key, a network/provider error, or an
-  unparseable reply each produce a clean HTTP status and a friendly UI
-  message — the app never crashes on a bad AI response.
-- **Human in the loop:** generation does **not** save anything. It returns
-  suggestions; the user reviews, edits, deselects, and chooses what to save as
-  real subtasks. The AI proposes; the person decides.
+  unparseable reply each map — through one shared `ai_errors()` helper — to a
+  clean HTTP status (`503` / `502` / `422`) and a friendly UI message. The app
+  never crashes on a bad AI response.
+- **Human in the loop:** no AI endpoint saves anything. Each returns a
+  proposal — subtasks, a summary, or task drafts — and the person reviews,
+  edits, and chooses what to keep. The AI proposes; the person decides.
 
 ---
 

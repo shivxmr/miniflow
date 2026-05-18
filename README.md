@@ -1,7 +1,7 @@
 # MiniFlow
 
 A lightweight project-management platform — projects, a Kanban task board,
-team roles, and AI-assisted task breakdowns. Inspired by Asana and Trello.
+team roles, and AI assistance throughout. Inspired by Asana and Trello.
 
 > **Live demo:** **https://miniflow-asana.vercel.app**
 > &nbsp;&nbsp;Web on Vercel · API ([miniflow-api.onrender.com](https://miniflow-api.onrender.com)) on Render · Database on Neon
@@ -20,6 +20,10 @@ team roles, and AI-assisted task breakdowns. Inspired by Asana and Trello.
   tasks have a description, priority, due date, and assignee.
 - **AI subtask generation** — break a task into a checklist with one click;
   suggestions are reviewed and edited before saving.
+- **AI project summary** — one click turns a project's tasks into a short
+  plain-text progress report; available to every member, Viewers included.
+- **AI task drafting** — paste a free-text note and get reviewable draft
+  tasks (title, description, priority) to edit and bulk-create.
 - **Drag-and-drop** — move task cards between columns to change status.
 - **Dark mode** — persisted, with no flash on load.
 - Loading / empty / error states throughout; responsive from mobile up.
@@ -58,7 +62,7 @@ asana_clone/
 - [uv](https://docs.astral.sh/uv/) — Python package manager
 - [pnpm](https://pnpm.io/) and Node.js 20+
 - An [OpenRouter API key](https://openrouter.ai/keys) (free tier) for the AI
-  feature — the rest of the app runs without it.
+  features — the rest of the app runs without it.
 
 ### 1. Clone & configure environment
 
@@ -115,8 +119,8 @@ Open `http://localhost:3000`, sign up, and start creating projects.
 | `BACKEND_CORS_ORIGINS`       | `http://localhost:3000`          | Comma-separated allowed web origins            |
 | `AUTH_RATE_LIMIT`            | `10/minute`                      | Rate limit for `/login` and `/signup`          |
 | `LLM_PROVIDER`               | `openrouter`                     | LLM provider label                             |
-| `LLM_API_KEY`                | _(empty)_                        | OpenRouter API key — required for AI subtasks  |
-| `LLM_MODEL`                  | `openai/gpt-oss-120b:free`       | Model used for subtask generation              |
+| `LLM_API_KEY`                | _(empty)_                        | OpenRouter API key — required for the AI features |
+| `LLM_MODEL`                  | `openai/gpt-oss-120b:free`       | Model used for the AI features                 |
 | `LLM_BASE_URL`               | `https://openrouter.ai/api/v1`   | OpenAI-compatible base URL                     |
 
 ### `web/.env.local`
