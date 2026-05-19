@@ -146,7 +146,8 @@ export function MemberPanel({ projectId, viewerRole }: MemberPanelProps) {
     }
   }
 
-  const rows = members.data ?? [];
+  const rows = members.data?.items ?? [];
+  const totalMembers = members.data?.total ?? rows.length;
 
   return (
     <section className="rounded-xl border border-line bg-surface shadow-card">
@@ -154,7 +155,7 @@ export function MemberPanel({ projectId, viewerRole }: MemberPanelProps) {
         <h2 className="font-display text-lg text-ink">Members</h2>
         {members.data && (
           <Badge tone="neutral">
-            {rows.length} {rows.length === 1 ? "person" : "people"}
+            {totalMembers} {totalMembers === 1 ? "person" : "people"}
           </Badge>
         )}
       </header>

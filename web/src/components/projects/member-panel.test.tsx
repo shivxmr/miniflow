@@ -49,8 +49,8 @@ const MEMBERS: ProjectMember[] = [
 function stubRequests() {
   requestMock.mockImplementation(
     (path: string, options?: { method?: string }) => {
-      if (path === "/projects/p1/members" && !options) {
-        return Promise.resolve(MEMBERS);
+      if (path.startsWith("/projects/p1/members") && !options) {
+        return Promise.resolve({ items: MEMBERS, total: MEMBERS.length, limit: 50, offset: 0 });
       }
       if (path === "/projects/p1/members" && options?.method === "POST") {
         return Promise.resolve(MEMBERS[1]);

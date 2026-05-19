@@ -163,7 +163,7 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
   }
 
   const allTasks = tasks.data?.items ?? [];
-  const memberList: ProjectMember[] = members.data ?? [];
+  const memberList: ProjectMember[] = members.data?.items ?? [];
 
   return (
     <section>

@@ -13,6 +13,7 @@ from app.models.project_member import ProjectMember
 from app.models.user import User
 from app.schemas.project import (
     MemberAdd,
+    MemberListResponse,
     MemberRoleUpdate,
     ProjectCreate,
     ProjectMemberRead,
@@ -164,13 +165,21 @@ def draft_tasks_from_text(
     return TaskDraftsResponse(drafts=[TaskDraft(**draft) for draft in drafts])
 
 
-@router.get("/{project_id}/members", response_model=list[ProjectMemberRead])
+@router.get("/{project_id}/members", response_model=MemberListResponse)
 def list_members(
     project_id: uuid.UUID,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     membership: ProjectMember = Depends(get_project_membership),
     db: Session = Depends(get_db),
-) -> list[ProjectMember]:
-    return project_service.list_members(db, project_id)
+) -> MemberListResponse:
+    items, total = project_service.list_members(db, project_id, limit=limit, offset=offset)
+    return MemberListResponse(
+        items=[ProjectMemberRead.model_validate(m) for m in items],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.post(

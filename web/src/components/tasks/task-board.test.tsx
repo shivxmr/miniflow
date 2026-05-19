@@ -98,7 +98,8 @@ function stubRequests(
   overrides: { tasks?: TaskListResponse; members?: ProjectMember[] } = {},
 ) {
   const tasks = overrides.tasks ?? TASK_LIST_RESPONSE;
-  const members = overrides.members ?? MEMBERS;
+  const membersItems = overrides.members ?? MEMBERS;
+  const members = { items: membersItems, total: membersItems.length, limit: 50, offset: 0 };
 
   requestMock.mockImplementation(
     (path: string, options?: { method?: string }) => {
@@ -311,7 +312,7 @@ describe("TaskBoard", () => {
 
   it("shows the error state when the task fetch fails", async () => {
     requestMock.mockImplementation((path: string) => {
-      if (path.includes("/members")) return Promise.resolve(MEMBERS);
+      if (path.includes("/members")) return Promise.resolve({ items: MEMBERS, total: MEMBERS.length, limit: 50, offset: 0 });
       return Promise.reject(new Error("Network error"));
     });
     render(<TaskBoard projectId="p1" viewerRole="admin" />);

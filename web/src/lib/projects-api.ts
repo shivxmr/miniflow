@@ -9,6 +9,13 @@
 import type { AuthedRequest } from "./api";
 import type { Project, ProjectMember, UserRole } from "./types";
 
+export interface MemberListResponse {
+  items: ProjectMember[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 /** Fields accepted when creating or updating a project. */
 export interface ProjectInput {
   name: string;
@@ -56,12 +63,17 @@ export function deleteProject(
   return request<void>(`/projects/${projectId}`, { method: "DELETE" });
 }
 
-/** Lists the members of a project. */
+/** Lists the members of a project (paginated; default limit 50). */
 export function listMembers(
   request: AuthedRequest,
   projectId: string,
-): Promise<ProjectMember[]> {
-  return request<ProjectMember[]>(`/projects/${projectId}/members`);
+  params: { limit?: number; offset?: number } = {},
+): Promise<MemberListResponse> {
+  const qs = new URLSearchParams();
+  if (params.limit !== undefined) qs.set("limit", String(params.limit));
+  if (params.offset !== undefined) qs.set("offset", String(params.offset));
+  const query = qs.toString() ? `?${qs}` : "";
+  return request<MemberListResponse>(`/projects/${projectId}/members${query}`);
 }
 
 /** Adds an existing user (looked up by email) to a project (Admin only). */

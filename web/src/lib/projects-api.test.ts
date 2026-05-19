@@ -62,6 +62,12 @@ describe("projects-api", () => {
     expect(fn).toHaveBeenCalledWith("/projects/p1/members");
   });
 
+  it("listMembers appends limit and offset when provided", () => {
+    const { fn, request } = spy();
+    listMembers(request, "p1", { limit: 10, offset: 20 });
+    expect(fn).toHaveBeenCalledWith("/projects/p1/members?limit=10&offset=20");
+  });
+
   it("addMember POSTs an email and role", () => {
     const { fn, request } = spy();
     addMember(request, "p1", { email: "new@x.com", role: "member" });

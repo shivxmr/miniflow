@@ -46,6 +46,13 @@ class ProjectMemberRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class MemberListResponse(BaseModel):
+    items: list[ProjectMemberRead]
+    total: int
+    limit: int
+    offset: int
+
+
 class ProjectSummaryResponse(BaseModel):
     """An AI-generated plain-text progress summary of a project."""
 

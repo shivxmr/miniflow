@@ -78,15 +78,32 @@ def delete_project(db: Session, project: Project) -> None:
     db.commit()
 
 
-def list_members(db: Session, project_id: uuid.UUID) -> list[ProjectMember]:
-    return list(
+def list_members(
+    db: Session,
+    project_id: uuid.UUID,
+    *,
+    limit: int = 50,
+    offset: int = 0,
+) -> tuple[list[ProjectMember], int]:
+    total = (
+        db.scalar(
+            select(func.count())
+            .select_from(ProjectMember)
+            .where(ProjectMember.project_id == project_id)
+        )
+        or 0
+    )
+    items = list(
         db.scalars(
             select(ProjectMember)
             .options(selectinload(ProjectMember.user))
             .where(ProjectMember.project_id == project_id)
             .order_by(ProjectMember.role)
+            .limit(limit)
+            .offset(offset)
         )
     )
+    return items, total
 
 
 def count_admins(db: Session, project_id: uuid.UUID) -> int:
