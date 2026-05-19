@@ -68,11 +68,22 @@ def get_active_refresh_token(db: Session, refresh_token: str) -> RefreshToken | 
 
 
 def rotate_refresh_token(db: Session, refresh_token: str) -> TokenPair | None:
-    db_token = get_active_refresh_token(db, refresh_token)
+    token_hash = hash_refresh_token(refresh_token)
+    db_token = db.scalar(
+        select(RefreshToken)
+        .where(RefreshToken.token_hash == token_hash)
+        .with_for_update()
+    )
     if db_token is None:
         return None
+    now = datetime.now(UTC)
+    expires_at = db_token.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+    if db_token.revoked_at is not None or expires_at <= now:
+        return None
 
-    db_token.revoked_at = datetime.now(UTC)
+    db_token.revoked_at = now
     user = db.get(User, db_token.user_id)
     if user is None:
         db.commit()
@@ -84,7 +95,7 @@ def rotate_refresh_token(db: Session, refresh_token: str) -> TokenPair | None:
         RefreshToken(
             user_id=user.id,
             token_hash=hash_refresh_token(new_refresh_token),
-            expires_at=datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days),
+            expires_at=now + timedelta(days=settings.refresh_token_expire_days),
         )
     )
     db.commit()
