@@ -12,12 +12,15 @@ exceptions below so the router can map it to a clean HTTP status:
 """
 
 import json
+import logging
 from collections.abc import Sequence
 from typing import Any
 
 import httpx
 
 from app.core.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 MAX_SUBTASKS = 10
 _REQUEST_TIMEOUT = 30.0
@@ -82,9 +85,13 @@ def _chat(system_prompt: str, user_prompt: str, *, max_tokens: int) -> str:
             timeout=_REQUEST_TIMEOUT,
         )
     except httpx.HTTPError as exc:
+        logger.error("AI service unreachable: %s", exc)
         raise AIServiceError("Could not reach the AI service. Please try again.") from exc
 
     if response.status_code != 200:
+        logger.error(
+            "AI service error: HTTP %s — %s", response.status_code, response.text[:200]
+        )
         raise AIServiceError(
             f"The AI service returned an error (HTTP {response.status_code})."
         )

@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, Request, Response
@@ -10,6 +11,12 @@ from app.api.projects import router as projects_router
 from app.api.tasks import router as tasks_router
 from app.core.config import get_settings
 from app.core.limiter import limiter
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -24,6 +31,12 @@ SECURITY_HEADERS = {
     "X-XSS-Protection": "0",
     "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
 }
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 @app.exception_handler(RateLimitExceeded)
