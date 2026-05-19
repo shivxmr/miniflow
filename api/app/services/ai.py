@@ -49,7 +49,7 @@ class AIInvalidResponse(AIError):
     """The LLM responded, but not with a usable result."""
 
 
-def _chat(system_prompt: str, user_prompt: str, *, max_tokens: int) -> str:
+async def _chat(system_prompt: str, user_prompt: str, *, max_tokens: int) -> str:
     """Call the configured chat-completions endpoint and return the reply text.
 
     Centralises the OpenAI-compatible request shared by every AI feature.
@@ -78,12 +78,12 @@ def _chat(system_prompt: str, user_prompt: str, *, max_tokens: int) -> str:
     }
 
     try:
-        response = httpx.post(
-            f"{settings.llm_base_url.rstrip('/')}/chat/completions",
-            json=payload,
-            headers=headers,
-            timeout=_REQUEST_TIMEOUT,
-        )
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
+            response = await client.post(
+                f"{settings.llm_base_url.rstrip('/')}/chat/completions",
+                json=payload,
+                headers=headers,
+            )
     except httpx.HTTPError as exc:
         logger.error("AI service unreachable: %s", exc)
         raise AIServiceError("Could not reach the AI service. Please try again.") from exc
@@ -192,13 +192,13 @@ def _build_summary_prompt(project_name: str, tasks: Sequence[Any]) -> str:
     return "\n".join(lines)
 
 
-def generate_project_summary(project_name: str, tasks: Sequence[Any]) -> str:
+async def generate_project_summary(project_name: str, tasks: Sequence[Any]) -> str:
     """Ask the configured LLM for a short progress summary of a project.
 
     ``tasks`` is the project's tasks; each item must expose ``title``,
     ``status``, ``priority`` and ``due_date``. Returns a plain-text paragraph.
     """
-    content = _chat(
+    content = await _chat(
         _SUMMARY_SYSTEM_PROMPT,
         _build_summary_prompt(project_name, tasks),
         max_tokens=400,
@@ -209,12 +209,12 @@ def generate_project_summary(project_name: str, tasks: Sequence[Any]) -> str:
     return summary
 
 
-def generate_subtask_titles(title: str, description: str | None) -> list[str]:
+async def generate_subtask_titles(title: str, description: str | None) -> list[str]:
     """Ask the configured LLM to break a task into subtask titles.
 
     Returns a list of at most :data:`MAX_SUBTASKS` non-empty title strings.
     """
-    content = _chat(
+    content = await _chat(
         _SYSTEM_PROMPT,
         _build_user_prompt(title, description),
         max_tokens=600,
@@ -285,14 +285,14 @@ def _extract_task_drafts(content: str) -> list[dict[str, str]]:
     return drafts[:MAX_TASK_DRAFTS]
 
 
-def generate_tasks_from_text(text: str) -> list[dict[str, str]]:
+async def generate_tasks_from_text(text: str) -> list[dict[str, str]]:
     """Ask the configured LLM to turn free text into draft tasks.
 
     Returns a list of at most :data:`MAX_TASK_DRAFTS` dicts, each with a
     ``title``, ``description`` and a ``priority`` of low/medium/high. The
     drafts are not persisted — the caller reviews them and creates real tasks.
     """
-    content = _chat(
+    content = await _chat(
         _TASK_DRAFT_SYSTEM_PROMPT,
         f"Notes:\n{text.strip()}",
         max_tokens=800,

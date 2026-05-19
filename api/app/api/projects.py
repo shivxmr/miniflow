@@ -130,7 +130,7 @@ def list_project_tasks(
 
 
 @router.post("/{project_id}/ai/summary", response_model=ProjectSummaryResponse)
-def summarize_project(
+async def summarize_project(
     project_id: uuid.UUID,
     membership: ProjectMember = Depends(get_project_membership),
     db: Session = Depends(get_db),
@@ -143,12 +143,12 @@ def summarize_project(
     project = db.get(Project, project_id)
     tasks, _total = task_service.list_tasks(db, project_id, limit=200)
     with ai_errors():
-        summary = ai.generate_project_summary(project.name, tasks)
+        summary = await ai.generate_project_summary(project.name, tasks)
     return ProjectSummaryResponse(summary=summary)
 
 
 @router.post("/{project_id}/ai/tasks", response_model=TaskDraftsResponse)
-def draft_tasks_from_text(
+async def draft_tasks_from_text(
     project_id: uuid.UUID,
     payload: GenerateTasksRequest,
     membership: ProjectMember = Depends(
@@ -161,7 +161,7 @@ def draft_tasks_from_text(
     until the client posts them to ``POST /tasks``. Viewers may not draft.
     """
     with ai_errors():
-        drafts = ai.generate_tasks_from_text(payload.text)
+        drafts = await ai.generate_tasks_from_text(payload.text)
     return TaskDraftsResponse(drafts=[TaskDraft(**draft) for draft in drafts])
 
 

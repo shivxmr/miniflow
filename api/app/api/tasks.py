@@ -176,7 +176,7 @@ def list_subtasks(
     "/{task_id}/subtasks/generate",
     response_model=SubtaskGenerateResponse,
 )
-def generate_subtasks(
+async def generate_subtasks(
     current_user: User = Depends(get_current_user),
     loaded: tuple[Task, ProjectMember] = Depends(load_task_with_membership),
 ) -> SubtaskGenerateResponse:
@@ -188,7 +188,7 @@ def generate_subtasks(
             detail="Your project role does not permit generating subtasks",
         )
     with ai_errors():
-        suggestions = ai.generate_subtask_titles(task.title, task.description)
+        suggestions = await ai.generate_subtask_titles(task.title, task.description)
     return SubtaskGenerateResponse(suggestions=suggestions)
 
 
