@@ -102,6 +102,20 @@ def rotate_refresh_token(db: Session, refresh_token: str) -> TokenPair | None:
     return TokenPair(access_token=create_access_token(user.id), refresh_token=new_refresh_token)
 
 
+def purge_expired_refresh_tokens(db: Session) -> int:
+    """Delete revoked or expired refresh tokens. Returns the count deleted."""
+    from sqlalchemy import delete as sa_delete
+
+    now = datetime.now(UTC)
+    result = db.execute(
+        sa_delete(RefreshToken).where(
+            (RefreshToken.revoked_at.is_not(None)) | (RefreshToken.expires_at <= now)
+        )
+    )
+    db.commit()
+    return result.rowcount
+
+
 def revoke_refresh_token(db: Session, refresh_token: str, user_id: uuid.UUID) -> bool:
     db_token = get_active_refresh_token(db, refresh_token)
     if db_token is None or db_token.user_id != user_id:

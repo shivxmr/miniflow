@@ -1,5 +1,7 @@
 import logging
 from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +12,9 @@ from app.api.auth import router as auth_router
 from app.api.projects import router as projects_router
 from app.api.tasks import router as tasks_router
 from app.core.config import get_settings
+from app.core.database import SessionLocal
 from app.core.limiter import limiter
+from app.services.auth import purge_expired_refresh_tokens
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,7 +24,17 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
-app = FastAPI(title=settings.app_name)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    with SessionLocal() as db:
+        deleted = purge_expired_refresh_tokens(db)
+        if deleted:
+            logger.info("Purged %d expired/revoked refresh tokens on startup", deleted)
+    yield
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 app.state.limiter = limiter
 
 # Conservative security headers applied to every response.
