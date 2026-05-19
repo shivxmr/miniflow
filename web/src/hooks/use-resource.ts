@@ -26,10 +26,14 @@ interface InternalState<T> {
  * when dependencies change or the component unmounts. Pass the values the
  * loader depends on (e.g. a project id) as `deps`; the resource reloads
  * whenever they change or `reload()` is called.
+ *
+ * `deps` is serialized with JSON.stringify to build a stable cache key.
+ * Pass only primitives — a new object literal each render causes an
+ * infinite re-render loop.
  */
 export function useResource<T>(
   loader: (signal: AbortSignal) => Promise<T>,
-  deps: ReadonlyArray<unknown>,
+  deps: ReadonlyArray<string | number | boolean | null | undefined>,
 ): ResourceState<T> {
   const [reloadCount, setReloadCount] = useState(0);
 
