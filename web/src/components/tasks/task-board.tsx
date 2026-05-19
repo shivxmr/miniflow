@@ -129,6 +129,7 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over) return;
+    if (!canEditTask(viewerRole)) return;
     const items = tasks.data?.items ?? [];
     const task = items.find((t) => t.id === String(active.id));
     const newStatus = over.id as TaskStatus;
