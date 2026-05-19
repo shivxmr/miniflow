@@ -66,11 +66,18 @@ def create_task(db: Session, payload: TaskCreate, creator_id: uuid.UUID) -> Task
 
 def update_task(db: Session, task: Task, payload: TaskUpdate) -> Task:
     data = payload.model_dump(exclude_unset=True)
-    if data.get("title") is not None:
+    if "title" in data and data["title"] is not None:
         task.title = data["title"].strip()
-    for field in ("description", "assigned_to", "status", "priority", "due_date"):
-        if field in data:
-            setattr(task, field, data[field])
+    if "description" in data:
+        task.description = data["description"]
+    if "assigned_to" in data:
+        task.assigned_to = data["assigned_to"]
+    if "status" in data:
+        task.status = data["status"]
+    if "priority" in data:
+        task.priority = data["priority"]
+    if "due_date" in data:
+        task.due_date = data["due_date"]
     db.commit()
     db.refresh(task)
     return task
