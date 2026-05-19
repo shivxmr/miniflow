@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import {
   DndContext,
   type DragEndEvent,
@@ -71,6 +71,12 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
     [projectId],
   );
 
+  // Optimistic overlay: apply status moves immediately, revert on failure.
+  const [optimisticItems, setOptimisticItems] = useState<Task[] | null>(null);
+  useEffect(() => {
+    setOptimisticItems(null);
+  }, [tasks.data]);
+
   const members = useResource(
     () => listMembers(request, projectId),
     [projectId],
@@ -130,10 +136,15 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
     const { active, over } = event;
     if (!over) return;
     if (!canEditTask(viewerRole)) return;
-    const items = tasks.data?.items ?? [];
+    const items = optimisticItems ?? tasks.data?.items ?? [];
     const task = items.find((t) => t.id === String(active.id));
     const newStatus = over.id as TaskStatus;
     if (!task || task.status === newStatus) return;
+
+    const optimistic = items.map((t) =>
+      t.id === task.id ? { ...t, status: newStatus } : t,
+    );
+    setOptimisticItems(optimistic);
 
     updateTask(request, task.id, { status: newStatus })
       .then(() => {
@@ -141,6 +152,7 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
         tasks.reload();
       })
       .catch((caught) => {
+        setOptimisticItems(items);
         showToast({
           title: "Could not move task",
           description: errorMessage(caught),
@@ -162,7 +174,7 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
     return canEditTask(viewerRole, user.id, task);
   }
 
-  const allTasks = tasks.data?.items ?? [];
+  const allTasks = optimisticItems ?? tasks.data?.items ?? [];
   const memberList: ProjectMember[] = members.data?.items ?? [];
 
   return (
