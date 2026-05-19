@@ -1,0 +1,18 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^api/
+      - id: ruff-format
+        files: ^api/
+
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        language: node
+        entry: bash -c 'cd web && npx eslint --max-warnings=0 "$@"' --
+        types_or: [javascript, jsx, ts, tsx]
+        files: ^web/src/
