@@ -3,13 +3,14 @@ from datetime import date, timedelta
 from sqlalchemy import select
 
 from app.core.database import SessionLocal
+from app.core.security import hash_password
 from app.models.enums import TaskPriority, TaskStatus, UserRole
 from app.models.project import Project
 from app.models.project_member import ProjectMember
 from app.models.task import Task
 from app.models.user import User
 
-SEED_PASSWORD_HASH = "seed-only-placeholder-until-auth-step"
+SEED_PASSWORD_HASH = hash_password("password123")
 
 
 def run() -> None:
