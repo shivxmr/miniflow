@@ -437,6 +437,13 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
         </>
       )}
 
+      {/* Truncation notice — shown when the server has more tasks than the 100-item limit */}
+      {!tasks.loading && !tasks.error && tasks.data && tasks.data.total > tasks.data.items.length && (
+        <p className="mt-4 text-center text-sm text-muted">
+          Showing {tasks.data.items.length} of {tasks.data.total} tasks — filter by status to see more.
+        </p>
+      )}
+
       {/* Create modal */}
       <TaskFormModal
         open={createOpen}
