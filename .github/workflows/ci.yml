@@ -48,6 +48,13 @@ jobs:
       - name: Lint (ruff)
         run: uv run ruff check .
 
+      # The app's startup lifespan purges expired refresh tokens against the
+      # real DATABASE_URL (the "miniflow" DB), which the TestClient triggers on
+      # every test. Migrate it so that startup query has a schema to hit; the
+      # test fixtures manage a separate "miniflow_test" database of their own.
+      - name: Migrate app database
+        run: uv run alembic upgrade head
+
       - name: Test (pytest)
         run: uv run pytest -q
 
