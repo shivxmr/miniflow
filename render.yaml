@@ -10,6 +10,9 @@ services:
     runtime: python
     plan: free
     rootDir: api
+    # Redeploy automatically on every push to the repo's default branch (main).
+    branch: main
+    autoDeploy: true
     buildCommand: pip install uv && uv sync --frozen
     startCommand: >-
       uv run alembic upgrade head &&
@@ -26,5 +29,14 @@ services:
         sync: false
       - key: BACKEND_CORS_ORIGINS  # the Vercel web URL, e.g. https://miniflow.vercel.app
         sync: false
+      - key: FRONTEND_URL          # the Vercel web URL — reset links point here
+        sync: false
       - key: LLM_MODEL
         value: openai/gpt-oss-120b:free
+      # Password-reset email (optional). With none set, the reset link is
+      # written to the Render logs. Set RESEND_API_KEY (or the SMTP_* vars) and
+      # EMAIL_FROM to deliver real email.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
