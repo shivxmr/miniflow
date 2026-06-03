@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   DndContext,
   type DragEndEvent,
@@ -73,9 +73,14 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
 
   // Optimistic overlay: apply status moves immediately, revert on failure.
   const [optimisticItems, setOptimisticItems] = useState<Task[] | null>(null);
-  useEffect(() => {
+  // Drop the overlay whenever fresh server data arrives. Done during render
+  // (React's recommended pattern) rather than in an effect to avoid an extra
+  // render pass.
+  const [seenTasks, setSeenTasks] = useState(tasks.data);
+  if (tasks.data !== seenTasks) {
+    setSeenTasks(tasks.data);
     setOptimisticItems(null);
-  }, [tasks.data]);
+  }
 
   const members = useResource(
     () => listMembers(request, projectId),

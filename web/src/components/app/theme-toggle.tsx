@@ -38,8 +38,11 @@ const MoonIcon = () => (
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("light");
 
-  // Reflect the theme the no-flash script already applied on <html>.
+  // Reflect the theme the no-flash script already applied on <html>. This must
+  // run after mount (not during render) so the server-rendered "light" markup
+  // matches on hydration; the DOM read then corrects it without a flash.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing to DOM state set pre-hydration
     setTheme(
       document.documentElement.dataset.theme === "dark" ? "dark" : "light",
     );
