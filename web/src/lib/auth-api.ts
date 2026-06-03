@@ -48,3 +48,29 @@ export function logout(
 export function fetchCurrentUser(accessToken: string): Promise<User> {
   return apiFetch<User>("/me", { token: accessToken });
 }
+
+export interface MessageResponse {
+  message: string;
+}
+
+/**
+ * Requests a password-reset link. The response is always the same neutral
+ * message regardless of whether the email is registered (no enumeration).
+ */
+export function forgotPassword(email: string): Promise<MessageResponse> {
+  return apiFetch<MessageResponse>("/auth/forgot-password", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+/** Redeems a reset token and sets a new password. */
+export function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<MessageResponse> {
+  return apiFetch<MessageResponse>("/auth/reset-password", {
+    method: "POST",
+    body: { token, new_password: newPassword },
+  });
+}

@@ -2,8 +2,18 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ToastProvider } from "@/components/ui/toast";
 import { AuthProvider } from "./auth-context";
 import { LoginForm } from "./login-form";
+
+const { searchParamsMock } = vi.hoisted(() => ({
+  searchParamsMock: { value: new URLSearchParams() },
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  useSearchParams: () => searchParamsMock.value,
+}));
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -22,15 +32,18 @@ const ADA = {
 
 function renderLoginForm() {
   return render(
-    <AuthProvider>
-      <LoginForm />
-    </AuthProvider>,
+    <ToastProvider>
+      <AuthProvider>
+        <LoginForm />
+      </AuthProvider>
+    </ToastProvider>,
   );
 }
 
 afterEach(() => {
   vi.unstubAllGlobals();
   localStorage.clear();
+  searchParamsMock.value = new URLSearchParams();
 });
 
 describe("LoginForm", () => {
@@ -87,6 +100,25 @@ describe("LoginForm", () => {
         fetchMock.mock.calls.some(([url]) => String(url).endsWith("/login")),
       ).toBe(true);
     });
+  });
+
+  it("offers a forgot-password link", () => {
+    renderLoginForm();
+
+    expect(
+      screen.getByRole("link", { name: /forgot password/i }),
+    ).toHaveAttribute("href", "/forgot-password");
+  });
+
+  it("shows a confirmation toast after a password reset redirect", async () => {
+    searchParamsMock.value = new URLSearchParams("reset=1");
+
+    renderLoginForm();
+
+    expect(await screen.findByText("Password updated")).toBeInTheDocument();
+    expect(
+      screen.getByText("Please log in with your new password."),
+    ).toBeInTheDocument();
   });
 
   it("shows a server error when the credentials are rejected", async () => {

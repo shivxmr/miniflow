@@ -83,9 +83,31 @@ access token before surfacing the error.
 
 ### Rate limiting
 
-`/login` and `/signup` are rate-limited per client IP (slowapi, default
-`10/minute`) to blunt credential stuffing and signup abuse. The limit is
-configurable via `AUTH_RATE_LIMIT` and disabled in the test suite.
+`/login`, `/signup`, and `/auth/forgot-password` are rate-limited per client IP
+(slowapi, default `10/minute`) to blunt credential stuffing, signup abuse, and
+reset-link spamming. The limit is configurable via `AUTH_RATE_LIMIT` and
+disabled in the test suite.
+
+### Password reset
+
+A self-service flow lets a user who has forgotten their password regain access:
+
+- `POST /auth/forgot-password` issues a single-use reset token. Like login, the
+  response is **deliberately uniform** ("If an account exists…") so it never
+  reveals whether an email is registered.
+- The token is a random `secrets.token_urlsafe` value; only its **SHA-256 hash**
+  is stored in `password_reset_tokens` (15-minute expiry, `used_at` marks
+  redemption) — the same hash-don't-store pattern as refresh tokens.
+- `POST /auth/reset-password` validates the token (rejecting unknown, expired,
+  or already-used ones with a `400`), bcrypt-hashes the new password, marks the
+  token used, and **revokes all of the user's refresh tokens** so any existing
+  sessions are ended.
+- **Email is pluggable** (`core/email.py`): Resend's HTTP API when
+  `RESEND_API_KEY` is set, SMTP when `SMTP_HOST` is set, otherwise the link is
+  written to the application log. This keeps the flow working out-of-the-box
+  locally and on hosts with no email configured, and upgrades to real delivery
+  by setting environment variables. Delivery failures are swallowed (logged) so
+  they can't be used to probe which emails exist.
 
 ---
 

@@ -16,10 +16,25 @@ class Settings(BaseSettings):
     )
     access_token_expire_minutes: int = Field(default=15, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(default=7, alias="REFRESH_TOKEN_EXPIRE_DAYS")
+    password_reset_token_expire_minutes: int = Field(
+        default=15, alias="PASSWORD_RESET_TOKEN_EXPIRE_MINUTES"
+    )
     backend_cors_origins: str = Field(
         default="http://localhost:3000",
         alias="BACKEND_CORS_ORIGINS",
     )
+
+    # --- Frontend & email ---
+    # The web app's base URL; reset links point at ``{frontend_url}/reset-password``.
+    frontend_url: str = Field(default="http://localhost:3000", alias="FRONTEND_URL")
+    email_from: str = Field(default="MiniFlow <no-reply@miniflow.app>", alias="EMAIL_FROM")
+    # Email delivery is pluggable: Resend if a key is set, else SMTP if a host
+    # is set, else the link is logged (works out-of-the-box locally and in prod).
+    resend_api_key: str = Field(default="", alias="RESEND_API_KEY")
+    smtp_host: str = Field(default="", alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, alias="SMTP_PORT")
+    smtp_user: str = Field(default="", alias="SMTP_USER")
+    smtp_password: str = Field(default="", alias="SMTP_PASSWORD")
 
     # --- LLM (AI subtask generation) ---
     # Provider is OpenAI-compatible; OpenRouter is the default. The API key is

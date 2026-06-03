@@ -7,8 +7,11 @@ from app.core.limiter import limiter
 from app.deps.auth import get_current_user
 from app.models.user import User
 from app.schemas.auth import (
+    ForgotPasswordRequest,
     LogoutRequest,
+    MessageResponse,
     RefreshRequest,
+    ResetPasswordRequest,
     TokenPair,
     UserCreate,
     UserLogin,
@@ -19,9 +22,15 @@ from app.services.auth import (
     create_user,
     get_user_by_email,
     issue_token_pair,
+    request_password_reset,
+    reset_password,
     revoke_refresh_token,
     rotate_refresh_token,
 )
+
+# Identical response whether or not the email is registered, to avoid
+# revealing which addresses have accounts.
+_FORGOT_PASSWORD_MESSAGE = "If an account exists for that email, a reset link has been sent."
 
 router = APIRouter(tags=["auth"])
 settings = get_settings()
@@ -69,6 +78,30 @@ def logout(
 ) -> Response:
     revoke_refresh_token(db, payload.refresh_token, current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/auth/forgot-password", response_model=MessageResponse)
+@limiter.limit(settings.auth_rate_limit)
+def forgot_password(
+    request: Request,
+    payload: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    request_password_reset(db, payload.email)
+    return MessageResponse(message=_FORGOT_PASSWORD_MESSAGE)
+
+
+@router.post("/auth/reset-password", response_model=MessageResponse)
+def reset_password_endpoint(
+    payload: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    if not reset_password(db, payload.token, payload.new_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This reset link is invalid or has expired. Request a new one.",
+        )
+    return MessageResponse(message="Password updated.")
 
 
 @router.get("/me", response_model=UserRead)

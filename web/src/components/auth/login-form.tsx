@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 import { ApiError } from "@/lib/api";
 import { validateEmail } from "@/lib/validation";
 import { useAuth } from "./auth-context";
@@ -18,11 +20,26 @@ interface FieldErrors {
 /** The sign-in form. On success the GuestGuard redirects to the dashboard. */
 export function LoginForm() {
   const { login } = useAuth();
+  const { showToast } = useToast();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Surface the "password updated" confirmation after a reset redirect, once.
+  const announcedReset = useRef(false);
+  useEffect(() => {
+    if (searchParams.get("reset") === "1" && !announcedReset.current) {
+      announcedReset.current = true;
+      showToast({
+        title: "Password updated",
+        description: "Please log in with your new password.",
+        tone: "success",
+      });
+    }
+  }, [searchParams, showToast]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -91,6 +108,15 @@ export function LoginForm() {
         onChange={(event) => setPassword(event.target.value)}
         error={fieldErrors.password}
       />
+
+      <div className="-mt-2 text-right">
+        <Link
+          href="/forgot-password"
+          className="text-sm font-medium text-accent underline-offset-2 hover:underline"
+        >
+          Forgot password?
+        </Link>
+      </div>
 
       <Button type="submit" size="lg" fullWidth loading={submitting}>
         Sign in

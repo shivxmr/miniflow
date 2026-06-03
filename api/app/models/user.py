@@ -10,6 +10,7 @@ from app.core.database import Base
 from app.models.enums import UserRole, enum_values
 
 if TYPE_CHECKING:
+    from app.models.password_reset_token import PasswordResetToken
     from app.models.project import Project
     from app.models.project_member import ProjectMember
     from app.models.refresh_token import RefreshToken
@@ -47,5 +48,8 @@ class User(Base):
         cascade="all, delete-orphan",
     )
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    password_reset_tokens: Mapped[list["PasswordResetToken"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
