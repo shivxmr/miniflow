@@ -1,5 +1,6 @@
 import json
 import uuid
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -113,9 +114,11 @@ def test_drafts_endpoint_returns_drafts(
     monkeypatch.setattr(
         ai,
         "generate_tasks_from_text",
-        lambda text: [
-            {"title": "Build login form", "description": "d", "priority": "high"}
-        ],
+        AsyncMock(
+            return_value=[
+                {"title": "Build login form", "description": "d", "priority": "high"}
+            ]
+        ),
     )
 
     response = request_drafts(client, admin.headers, project_id)
@@ -135,7 +138,7 @@ def test_drafts_endpoint_passes_text_to_ai(
     project_id = create_project(client, admin.headers)
     captured: dict[str, str] = {}
 
-    def fake(text: str) -> list[dict[str, str]]:
+    async def fake(text: str) -> list[dict[str, str]]:
         captured["text"] = text
         return [{"title": "T", "description": "", "priority": "medium"}]
 
@@ -156,7 +159,7 @@ def test_drafts_endpoint_allows_member(
     monkeypatch.setattr(
         ai,
         "generate_tasks_from_text",
-        lambda text: [{"title": "T", "description": "", "priority": "low"}],
+        AsyncMock(return_value=[{"title": "T", "description": "", "priority": "low"}]),
     )
 
     response = request_drafts(client, member.headers, project_id)
@@ -217,9 +220,11 @@ def test_drafts_endpoint_does_not_persist(
     monkeypatch.setattr(
         ai,
         "generate_tasks_from_text",
-        lambda text: [
-            {"title": "Should not be saved", "description": "", "priority": "low"}
-        ],
+        AsyncMock(
+            return_value=[
+                {"title": "Should not be saved", "description": "", "priority": "low"}
+            ]
+        ),
     )
 
     request_drafts(client, admin.headers, project_id)

@@ -1,5 +1,6 @@
 import json
 import uuid
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -314,7 +315,9 @@ def test_generate_subtasks_success(
     task_id = setup_task(client, admin.headers)
 
     monkeypatch.setattr(
-        ai, "generate_subtask_titles", lambda title, desc: ["Step one", "Step two"]
+        ai,
+        "generate_subtask_titles",
+        AsyncMock(return_value=["Step one", "Step two"]),
     )
 
     response = client.post(
@@ -330,7 +333,9 @@ def test_generate_subtasks_does_not_persist(
 ) -> None:
     admin = register(client, "admin@example.com")
     task_id = setup_task(client, admin.headers)
-    monkeypatch.setattr(ai, "generate_subtask_titles", lambda title, desc: ["A", "B"])
+    monkeypatch.setattr(
+        ai, "generate_subtask_titles", AsyncMock(return_value=["A", "B"])
+    )
 
     client.post(f"/tasks/{task_id}/subtasks/generate", headers=admin.headers)
 

@@ -1,5 +1,6 @@
 import uuid
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -66,7 +67,7 @@ def test_summary_endpoint_returns_summary(
     project_id = create_project(client, admin.headers)
     create_task(client, admin.headers, project_id)
     monkeypatch.setattr(
-        ai, "generate_project_summary", lambda name, tasks: "All on track."
+        ai, "generate_project_summary", AsyncMock(return_value="All on track.")
     )
 
     response = client.post(
@@ -85,7 +86,7 @@ def test_summary_endpoint_passes_project_name_and_tasks_to_ai(
     create_task(client, admin.headers, project_id, title="A distinctive task")
     captured: dict[str, object] = {}
 
-    def fake(name: str, tasks: object) -> str:
+    async def fake(name: str, tasks: object) -> str:
         captured["name"] = name
         captured["titles"] = [t.title for t in tasks]  # type: ignore[attr-defined]
         return "summary text"
@@ -105,7 +106,9 @@ def test_summary_endpoint_allows_viewer(
     viewer = register(client, "viewer@example.com")
     project_id = create_project(client, admin.headers)
     add_member(client, project_id, admin.headers, viewer.email, role="viewer")
-    monkeypatch.setattr(ai, "generate_project_summary", lambda name, tasks: "ok")
+    monkeypatch.setattr(
+        ai, "generate_project_summary", AsyncMock(return_value="ok")
+    )
 
     response = client.post(
         f"/projects/{project_id}/ai/summary", headers=viewer.headers

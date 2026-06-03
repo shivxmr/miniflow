@@ -128,7 +128,7 @@ def test_list_members_returns_everyone(client: TestClient) -> None:
     response = client.get(f"/projects/{project_id}/members", headers=admin.headers)
 
     assert response.status_code == 200
-    emails = {m["user"]["email"] for m in response.json()}
+    emails = {m["user"]["email"] for m in response.json()["items"]}
     assert emails == {"admin@example.com", "teammate@example.com"}
 
 
@@ -141,7 +141,8 @@ def test_viewer_can_list_members(client: TestClient) -> None:
     response = client.get(f"/projects/{project_id}/members", headers=viewer.headers)
 
     assert response.status_code == 200
-    assert len(response.json()) == 2
+    assert response.json()["total"] == 2
+    assert len(response.json()["items"]) == 2
 
 
 def test_non_member_cannot_list_members(client: TestClient) -> None:
@@ -229,7 +230,9 @@ def test_admin_removes_member(client: TestClient) -> None:
     )
 
     assert response.status_code == 204
-    members = client.get(f"/projects/{project_id}/members", headers=admin.headers).json()
+    members = client.get(
+        f"/projects/{project_id}/members", headers=admin.headers
+    ).json()["items"]
     assert {m["user"]["email"] for m in members} == {"admin@example.com"}
 
 
@@ -259,7 +262,9 @@ def test_member_cannot_remove_members(client: TestClient) -> None:
     assert response.status_code == 403
 
 
-def test_cannot_remove_the_last_admin(client: TestClient) -> None:
+def test_admin_cannot_remove_self(client: TestClient) -> None:
+    # An admin removing themselves is rejected with 400 before the
+    # last-admin (409) check, so they can never orphan a project.
     admin = register(client, "admin@example.com")
     project_id = create_project(client, admin.headers)
 
@@ -268,4 +273,4 @@ def test_cannot_remove_the_last_admin(client: TestClient) -> None:
         headers=admin.headers,
     )
 
-    assert response.status_code == 409
+    assert response.status_code == 400
