@@ -154,8 +154,8 @@ describe("AuthProvider", () => {
 
     renderAuth();
 
-    expect(await screen.findByTestId("user")).toHaveTextContent(
-      "ada@example.com",
+    await waitFor(() =>
+      expect(screen.getByTestId("user")).toHaveTextContent("ada@example.com"),
     );
     expect(screen.getByTestId("status")).toHaveTextContent("authenticated");
   });
@@ -188,8 +188,8 @@ describe("AuthProvider", () => {
 
     renderAuth();
 
-    expect(await screen.findByTestId("user")).toHaveTextContent(
-      "ada@example.com",
+    await waitFor(() =>
+      expect(screen.getByTestId("user")).toHaveTextContent("ada@example.com"),
     );
     expect(screen.getByTestId("status")).toHaveTextContent("authenticated");
     expect(loadSession()).toEqual({
