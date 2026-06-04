@@ -8,9 +8,10 @@ handles persistence and query building.
 import uuid
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.enums import TaskPriority, TaskStatus
+from app.models.label import task_labels
 from app.models.task import Task
 from app.schemas.task import TaskCreate, TaskUpdate
 
@@ -22,10 +23,15 @@ def list_tasks(
     status: TaskStatus | None = None,
     priority: TaskPriority | None = None,
     assigned_to: uuid.UUID | None = None,
+    label_ids: list[uuid.UUID] | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> tuple[list[Task], int]:
-    """Return a page of a project's tasks plus the total matching count."""
+    """Return a page of a project's tasks plus the total matching count.
+
+    ``label_ids`` filters to tasks carrying *any* of the given labels (OR
+    logic); a task matching several is counted once.
+    """
     conditions = [Task.project_id == project_id]
     if status is not None:
         conditions.append(Task.status == status)
@@ -33,12 +39,17 @@ def list_tasks(
         conditions.append(Task.priority == priority)
     if assigned_to is not None:
         conditions.append(Task.assigned_to == assigned_to)
+    if label_ids:
+        conditions.append(
+            Task.id.in_(select(task_labels.c.task_id).where(task_labels.c.label_id.in_(label_ids)))
+        )
 
     total = db.scalar(select(func.count()).select_from(Task).where(*conditions)) or 0
     items = list(
         db.scalars(
             select(Task)
             .where(*conditions)
+            .options(selectinload(Task.labels))
             .order_by(Task.created_at, Task.id)
             .limit(limit)
             .offset(offset)

@@ -13,6 +13,7 @@ from app.models.subtask import Subtask
 from app.models.task import Task
 from app.models.user import User
 from app.schemas.comment import CommentCreate, CommentRead
+from app.schemas.label import TaskLabelApply
 from app.schemas.subtask import (
     SubtaskCreate,
     SubtaskGenerateResponse,
@@ -22,10 +23,12 @@ from app.schemas.subtask import (
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
 from app.services import ai
 from app.services import comment as comment_service
+from app.services import label as label_service
 from app.services import project as project_service
 from app.services import subtask as subtask_service
 from app.services import task as task_service
 from app.services.permissions import (
+    can_apply_labels,
     can_comment,
     can_create_task,
     can_delete_comment,
@@ -60,9 +63,7 @@ def load_task_with_membership(
     return task, membership
 
 
-def _ensure_assignee_is_member(
-    db: Session, project_id: uuid.UUID, assignee_id: uuid.UUID
-) -> None:
+def _ensure_assignee_is_member(db: Session, project_id: uuid.UUID, assignee_id: uuid.UUID) -> None:
     if project_service.get_membership(db, project_id, assignee_id) is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -304,3 +305,52 @@ def delete_comment(
         )
     comment_service.delete_comment(db, comment)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# --- Labels -----------------------------------------------------------------
+
+
+@router.post("/{task_id}/labels", response_model=TaskRead)
+def apply_label(
+    payload: TaskLabelApply,
+    current_user: User = Depends(get_current_user),
+    loaded: tuple[Task, ProjectMember] = Depends(load_task_with_membership),
+    db: Session = Depends(get_db),
+) -> Task:
+    """Attach a label to a task. Admins and Members may label any task."""
+    task, membership = loaded
+    if not can_apply_labels(membership.role):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your project role does not permit applying labels",
+        )
+    label = label_service.get_label(db, task.project_id, payload.label_id)
+    if label is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The label belongs to a different project",
+        )
+    return label_service.apply_label(db, task, label)
+
+
+@router.delete("/{task_id}/labels/{label_id}", response_model=TaskRead)
+def remove_label(
+    label_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    loaded: tuple[Task, ProjectMember] = Depends(load_task_with_membership),
+    db: Session = Depends(get_db),
+) -> Task:
+    """Detach a label from a task. Admins and Members may do this on any task."""
+    task, membership = loaded
+    if not can_apply_labels(membership.role):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your project role does not permit removing labels",
+        )
+    label = label_service.get_label(db, task.project_id, label_id)
+    if label is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Label not found",
+        )
+    return label_service.remove_label(db, task, label)

@@ -11,6 +11,7 @@ from app.models.enums import TaskPriority, TaskStatus, UserRole
 from app.models.project import Project
 from app.models.project_member import ProjectMember
 from app.models.user import User
+from app.schemas.label import LabelCreate, LabelRead, LabelUpdate
 from app.schemas.project import (
     MemberAdd,
     MemberListResponse,
@@ -29,6 +30,7 @@ from app.schemas.task import (
     TaskRead,
 )
 from app.services import ai
+from app.services import label as label_service
 from app.services import project as project_service
 from app.services import task as task_service
 from app.services.auth import get_user_by_email
@@ -107,6 +109,7 @@ def list_project_tasks(
     status: TaskStatus | None = None,
     priority: TaskPriority | None = None,
     assigned_to: uuid.UUID | None = None,
+    label_id: list[uuid.UUID] | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     membership: ProjectMember = Depends(get_project_membership),
@@ -118,6 +121,7 @@ def list_project_tasks(
         status=status,
         priority=priority,
         assigned_to=assigned_to,
+        label_ids=label_id,
         limit=limit,
         offset=offset,
     )
@@ -151,9 +155,7 @@ async def summarize_project(
 async def draft_tasks_from_text(
     project_id: uuid.UUID,
     payload: GenerateTasksRequest,
-    membership: ProjectMember = Depends(
-        require_project_role(UserRole.ADMIN, UserRole.MEMBER)
-    ),
+    membership: ProjectMember = Depends(require_project_role(UserRole.ADMIN, UserRole.MEMBER)),
 ) -> TaskDraftsResponse:
     """Turn a free-text note into reviewable draft tasks.
 
@@ -260,4 +262,69 @@ def remove_member(
             detail="A project must keep at least one admin",
         )
     project_service.remove_member(db, target)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# --- Labels ------------------------------------------------------------------
+
+
+@router.get("/{project_id}/labels", response_model=list[LabelRead])
+def list_labels(
+    project_id: uuid.UUID,
+    membership: ProjectMember = Depends(get_project_membership),
+    db: Session = Depends(get_db),
+) -> list[LabelRead]:
+    """List a project's labels. Any member, including Viewers, may read."""
+    return [LabelRead.model_validate(label) for label in label_service.list_labels(db, project_id)]
+
+
+@router.post(
+    "/{project_id}/labels",
+    response_model=LabelRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_label(
+    project_id: uuid.UUID,
+    payload: LabelCreate,
+    membership: ProjectMember = Depends(require_project_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+) -> LabelRead:
+    label = label_service.create_label(db, project_id, payload)
+    return LabelRead.model_validate(label)
+
+
+@router.put("/{project_id}/labels/{label_id}", response_model=LabelRead)
+def update_label(
+    project_id: uuid.UUID,
+    label_id: uuid.UUID,
+    payload: LabelUpdate,
+    membership: ProjectMember = Depends(require_project_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+) -> LabelRead:
+    label = label_service.get_label(db, project_id, label_id)
+    if label is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Label not found",
+        )
+    return LabelRead.model_validate(label_service.update_label(db, label, payload))
+
+
+@router.delete(
+    "/{project_id}/labels/{label_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_label(
+    project_id: uuid.UUID,
+    label_id: uuid.UUID,
+    membership: ProjectMember = Depends(require_project_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+) -> Response:
+    label = label_service.get_label(db, project_id, label_id)
+    if label is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Label not found",
+        )
+    label_service.delete_label(db, label)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

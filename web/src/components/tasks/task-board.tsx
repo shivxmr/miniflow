@@ -20,7 +20,13 @@ import { EmptyState, ErrorState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { useResource } from "@/hooks/use-resource";
 import { errorMessage } from "@/lib/api";
-import { canCreateTask, canEditTask } from "@/lib/permissions";
+import {
+  canApplyLabels,
+  canCreateTask,
+  canEditTask,
+  canManageLabels,
+} from "@/lib/permissions";
+import { listLabels } from "@/lib/labels-api";
 import {
   type TaskCreateInput,
   type TaskUpdateInput,
@@ -29,8 +35,10 @@ import {
   listTasks,
   updateTask,
 } from "@/lib/tasks-api";
-import type { ProjectMember, Task, TaskStatus, UserRole } from "@/lib/types";
+import type { Label, ProjectMember, Task, TaskStatus, UserRole } from "@/lib/types";
 import { listMembers } from "@/lib/projects-api";
+import { ManageLabelsModal } from "@/components/labels/manage-labels-modal";
+import { LabelFilterBar } from "./label-filter-bar";
 import { TaskCard, TaskRow } from "./task-card";
 import { TaskDraftModal } from "./task-draft-modal";
 import { TaskFormModal } from "./task-form-modal";
@@ -65,10 +73,17 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [manageLabelsOpen, setManageLabelsOpen] = useState(false);
+  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
 
+  const labels = useResource(() => listLabels(request, projectId), [projectId]);
+
+  // Joined into a stable string so the resource re-fetches when the selection
+  // changes without passing an array (a new reference each render) as a dep.
+  const labelFilterKey = selectedLabelIds.join(",");
   const tasks = useResource(
-    () => listTasks(request, projectId, { limit: 100 }),
-    [projectId],
+    () => listTasks(request, projectId, { limit: 100, label_ids: selectedLabelIds }),
+    [projectId, labelFilterKey],
   );
 
   // Optimistic overlay: apply status moves immediately, revert on failure.
@@ -93,6 +108,26 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
   );
 
   const canCreate = canCreateTask(viewerRole);
+  const canApply = canApplyLabels(viewerRole);
+  const canManage = canManageLabels(viewerRole);
+  const projectLabels: Label[] = labels.data ?? [];
+
+  /** Replace a task in the loaded list after its labels change. */
+  function handleTaskChange(updated: Task) {
+    setOptimisticItems((current) => {
+      const base = current ?? tasks.data?.items ?? [];
+      const next = base.map((t) => (t.id === updated.id ? updated : t));
+      // When filtering by label, a task may no longer match — drop it.
+      if (selectedLabelIds.length > 0) {
+        return next.filter(
+          (t) =>
+            t.id !== updated.id ||
+            updated.labels.some((label) => selectedLabelIds.includes(label.id)),
+        );
+      }
+      return next;
+    });
+  }
 
   async function handleCreate(input: TaskCreateInput | TaskUpdateInput) {
     await createTask(request, input as TaskCreateInput);
@@ -182,6 +217,14 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
   const allTasks = optimisticItems ?? tasks.data?.items ?? [];
   const memberList: ProjectMember[] = members.data?.items ?? [];
 
+  // Label-related props threaded into every task card and row.
+  const labelProps = {
+    projectLabels,
+    canApplyLabels: canApply,
+    request,
+    onTaskChange: handleTaskChange,
+  };
+
   return (
     <section>
       {/* Toolbar */}
@@ -246,8 +289,35 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
           </button>
         </div>
 
-        {canCreate && (
+        {(canCreate || canManage) && (
           <div className="flex items-center gap-2">
+            {canManage && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setManageLabelsOpen(true)}
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                  className="mr-1.5"
+                >
+                  <path
+                    d="M2 3.5A1.5 1.5 0 0 1 3.5 2H8l6 6-4.5 4.5a1.5 1.5 0 0 1-2.1 0L2 7V3.5z"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="5.25" cy="5.25" r="1" fill="currentColor" />
+                </svg>
+                Manage labels
+              </Button>
+            )}
+            {canCreate && (
+            <>
             <Button
               size="sm"
               variant="secondary"
@@ -294,9 +364,21 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
               </svg>
               New task
             </Button>
+            </>
+            )}
           </div>
         )}
       </div>
+
+      {/* Label filter bar */}
+      {projectLabels.length > 0 && (
+        <LabelFilterBar
+          labels={projectLabels}
+          selectedIds={selectedLabelIds}
+          onChange={setSelectedLabelIds}
+          className="mb-5"
+        />
+      )}
 
       {/* Loading skeletons */}
       {tasks.loading && (
@@ -364,6 +446,7 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
                           canEdit={taskCanEdit(task)}
                           onEdit={openEdit}
                           onDelete={openDelete}
+                          {...labelProps}
                         />
                       ))
                     )}
@@ -435,6 +518,7 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
                   canEdit={taskCanEdit(task)}
                   onEdit={openEdit}
                   onDelete={openDelete}
+                  {...labelProps}
                 />
               ))}
             </ul>
@@ -496,6 +580,19 @@ export function TaskBoard({ projectId, viewerRole }: TaskBoardProps) {
         onConfirm={handleDelete}
         onClose={() => setDeleteTarget(null)}
       />
+
+      {/* Manage labels (admin) */}
+      <ManageLabelsModal
+        open={manageLabelsOpen}
+        onClose={() => setManageLabelsOpen(false)}
+        projectId={projectId}
+        request={request}
+        labels={projectLabels}
+        onChanged={() => {
+          labels.reload();
+          tasks.reload();
+        }}
+      />
     </section>
   );
 }
@@ -521,22 +618,10 @@ function DroppableColumn({
   );
 }
 
-interface DraggableTaskCardProps {
-  task: Task;
-  members: ProjectMember[];
-  canEdit: boolean;
-  onEdit: (task: Task) => void;
-  onDelete: (task: Task) => void;
-}
+type DraggableTaskCardProps = Parameters<typeof TaskCard>[0];
 
 /** A task card draggable between columns when the user may edit the task. */
-function DraggableTaskCard({
-  task,
-  members,
-  canEdit,
-  onEdit,
-  onDelete,
-}: DraggableTaskCardProps) {
+function DraggableTaskCard({ task, canEdit, ...rest }: DraggableTaskCardProps) {
   const { listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
     disabled: !canEdit,
@@ -554,13 +639,7 @@ function DraggableTaskCard({
       className={canEdit ? "cursor-grab touch-none active:cursor-grabbing" : undefined}
       {...(canEdit ? listeners : {})}
     >
-      <TaskCard
-        task={task}
-        members={members}
-        canEdit={canEdit}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
+      <TaskCard task={task} canEdit={canEdit} {...rest} />
     </div>
   );
 }

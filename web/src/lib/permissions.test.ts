@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   ROLE_LABEL,
   ROLE_ORDER,
+  canApplyLabels,
   canComment,
   canCreateTask,
   canDeleteComment,
   canEditTask,
+  canManageLabels,
   canManageMembers,
   canManageProject,
   roleBadgeTone,
@@ -23,6 +25,18 @@ describe("permissions", () => {
     expect(canManageMembers("admin")).toBe(true);
     expect(canManageMembers("member")).toBe(false);
     expect(canManageMembers("viewer")).toBe(false);
+  });
+
+  it("only admins may manage labels", () => {
+    expect(canManageLabels("admin")).toBe(true);
+    expect(canManageLabels("member")).toBe(false);
+    expect(canManageLabels("viewer")).toBe(false);
+  });
+
+  it("admins and members may apply labels, viewers may not", () => {
+    expect(canApplyLabels("admin")).toBe(true);
+    expect(canApplyLabels("member")).toBe(true);
+    expect(canApplyLabels("viewer")).toBe(false);
   });
 
   it("labels every role", () => {

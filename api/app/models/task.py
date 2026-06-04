@@ -68,3 +68,9 @@ class Task(Base):
         cascade="all, delete-orphan",
         order_by="Comment.created_at",
     )
+    labels = relationship(
+        "Label",
+        secondary="task_labels",
+        back_populates="tasks",
+        order_by="Label.name",
+    )

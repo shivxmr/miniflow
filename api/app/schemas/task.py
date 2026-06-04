@@ -4,6 +4,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import TaskPriority, TaskStatus
+from app.schemas.label import LabelRead
 
 
 class TaskCreate(BaseModel):
@@ -39,6 +40,7 @@ class TaskRead(BaseModel):
     created_by: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    labels: list[LabelRead] = []
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -1,10 +1,13 @@
 "use client";
 
+import { LabelPicker } from "@/components/labels/label-picker";
+import { LabelPillList } from "@/components/labels/label-pill";
 import { Badge } from "@/components/ui/badge";
 import type { BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { AuthedRequest } from "@/lib/api";
 import { initial } from "@/lib/format";
-import type { ProjectMember, Task, TaskPriority, TaskStatus } from "@/lib/types";
+import type { Label, ProjectMember, Task, TaskPriority, TaskStatus } from "@/lib/types";
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
   todo: "To Do",
@@ -30,10 +33,27 @@ interface TaskCardProps {
   canEdit: boolean;
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
+  /** All labels defined on the project, offered by the label picker. */
+  projectLabels: Label[];
+  /** Whether the viewer may attach/detach labels on this task. */
+  canApplyLabels: boolean;
+  request: AuthedRequest;
+  /** Called with the task returned after a label is added or removed. */
+  onTaskChange: (task: Task) => void;
 }
 
 /** A compact task card shown in a Kanban column or list row. */
-export function TaskCard({ task, members, canEdit, onEdit, onDelete }: TaskCardProps) {
+export function TaskCard({
+  task,
+  members,
+  canEdit,
+  onEdit,
+  onDelete,
+  projectLabels,
+  canApplyLabels,
+  request,
+  onTaskChange,
+}: TaskCardProps) {
   const assignee = members.find((m) => m.user.id === task.assigned_to);
 
   return (
@@ -46,28 +66,38 @@ export function TaskCard({ task, members, canEdit, onEdit, onDelete }: TaskCardP
         <Badge tone={PRIORITY_TONE[task.priority]}>
           {PRIORITY_LABEL[task.priority]}
         </Badge>
-        {canEdit && (
-          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label={`Edit task: ${task.title}`}
-              onClick={() => onEdit(task)}
-              className="h-7 px-2 text-xs"
-            >
-              Edit
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label={`Delete task: ${task.title}`}
-              onClick={() => onDelete(task)}
-              className="h-7 px-2 text-xs hover:text-danger"
-            >
-              Delete
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-1">
+          {canApplyLabels && (
+            <LabelPickerDnd
+              request={request}
+              task={task}
+              projectLabels={projectLabels}
+              onTaskChange={onTaskChange}
+            />
+          )}
+          {canEdit && (
+            <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`Edit task: ${task.title}`}
+                onClick={() => onEdit(task)}
+                className="h-7 px-2 text-xs"
+              >
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`Delete task: ${task.title}`}
+                onClick={() => onDelete(task)}
+                className="h-7 px-2 text-xs hover:text-danger"
+              >
+                Delete
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       <h3 className="text-sm font-medium leading-snug text-ink line-clamp-2">
@@ -78,6 +108,10 @@ export function TaskCard({ task, members, canEdit, onEdit, onDelete }: TaskCardP
         <p className="mt-1.5 text-xs leading-relaxed text-muted line-clamp-2">
           {task.description}
         </p>
+      )}
+
+      {task.labels.length > 0 && (
+        <LabelPillList labels={task.labels} className="mt-2.5" />
       )}
 
       <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted">
@@ -130,6 +164,10 @@ export function TaskRow({
   canEdit,
   onEdit,
   onDelete,
+  projectLabels,
+  canApplyLabels,
+  request,
+  onTaskChange,
 }: TaskCardProps) {
   const assignee = members.find((m) => m.user.id === task.assigned_to);
 
@@ -145,7 +183,18 @@ export function TaskRow({
             {task.description}
           </p>
         )}
+        {task.labels.length > 0 && (
+          <LabelPillList labels={task.labels} className="mt-1.5" />
+        )}
       </div>
+      {canApplyLabels && (
+        <LabelPicker
+          request={request}
+          task={task}
+          projectLabels={projectLabels}
+          onTaskChange={onTaskChange}
+        />
+      )}
       <Badge tone={PRIORITY_TONE[task.priority]}>{PRIORITY_LABEL[task.priority]}</Badge>
       <Badge
         tone={
@@ -193,5 +242,18 @@ export function TaskRow({
         </div>
       )}
     </li>
+  );
+}
+
+/**
+ * The label picker wrapped so pointer interactions don't start a card drag.
+ * On the board a card is draggable; stopping pointerdown here keeps clicks on
+ * the picker (and its popover) from being interpreted as a drag.
+ */
+function LabelPickerDnd(props: Parameters<typeof LabelPicker>[0]) {
+  return (
+    <div onPointerDown={(event) => event.stopPropagation()}>
+      <LabelPicker {...props} />
+    </div>
   );
 }

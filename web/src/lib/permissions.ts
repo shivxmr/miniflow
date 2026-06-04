@@ -48,6 +48,20 @@ export function canComment(role: UserRole): boolean {
   return role === "admin" || role === "member";
 }
 
+/** Only Admins may create, rename, recolor, or delete project labels. */
+export function canManageLabels(role: UserRole): boolean {
+  return role === "admin";
+}
+
+/**
+ * Admins and Members may apply/remove labels on any task; Viewers may not.
+ * Deliberately independent of {@link canEditTask}: labeling is a lightweight
+ * action, so a Member may label any task, not just ones they own.
+ */
+export function canApplyLabels(role: UserRole): boolean {
+  return role === "admin" || role === "member";
+}
+
 /**
  * Returns whether the current user may delete a comment.
  * - Admins may delete any comment.
