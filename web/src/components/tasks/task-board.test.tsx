@@ -58,6 +58,7 @@ const TASKS: Task[] = [
     created_by: "u-admin",
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
+    labels: [],
   },
   {
     id: "t2",
@@ -71,6 +72,7 @@ const TASKS: Task[] = [
     created_by: "u-admin",
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
+    labels: [],
   },
   {
     id: "t3",
@@ -84,6 +86,7 @@ const TASKS: Task[] = [
     created_by: "u-other",
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
+    labels: [],
   },
 ];
 
@@ -104,6 +107,9 @@ function stubRequests(
   requestMock.mockImplementation(
     (path: string, options?: { method?: string }) => {
       if (path.includes("/subtasks") && !options) {
+        return Promise.resolve([]);
+      }
+      if (path.includes("/labels") && !options) {
         return Promise.resolve([]);
       }
       if (path.includes("/tasks") && !options) {

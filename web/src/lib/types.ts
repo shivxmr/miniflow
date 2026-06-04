@@ -39,6 +39,14 @@ export interface ProjectMember {
   user: User;
 }
 
+/** A colored, project-scoped tag that can be applied to tasks. */
+export interface Label {
+  id: string;
+  project_id: string;
+  name: string;
+  color: string;
+}
+
 export type TaskStatus = "todo" | "in_progress" | "done";
 export type TaskPriority = "low" | "medium" | "high";
 
@@ -55,6 +63,7 @@ export interface Task {
   created_by: string;
   created_at: string;
   updated_at: string;
+  labels: Label[];
 }
 
 /** Paginated response from GET /projects/:id/tasks. */

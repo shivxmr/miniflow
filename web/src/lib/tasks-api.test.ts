@@ -29,6 +29,12 @@ describe("tasks-api", () => {
     );
   });
 
+  it("listTasks appends a label_id param for each label (OR filter)", () => {
+    const { fn, request } = spy();
+    listTasks(request, "p1", { label_ids: ["a", "b"] });
+    expect(fn).toHaveBeenCalledWith("/projects/p1/tasks?label_id=a&label_id=b");
+  });
+
   it("createTask POSTs the task body", () => {
     const { fn, request } = spy();
     createTask(request, {

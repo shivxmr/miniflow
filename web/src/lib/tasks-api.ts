@@ -33,6 +33,8 @@ export interface ListTasksParams {
   status?: TaskStatus;
   priority?: TaskPriority;
   assigned_to?: string;
+  /** Filter to tasks carrying any of these labels (OR logic). */
+  label_ids?: string[];
   limit?: number;
   offset?: number;
 }
@@ -47,6 +49,9 @@ export function listTasks(
   if (params.status) qs.set("status", params.status);
   if (params.priority) qs.set("priority", params.priority);
   if (params.assigned_to) qs.set("assigned_to", params.assigned_to);
+  if (params.label_ids) {
+    for (const labelId of params.label_ids) qs.append("label_id", labelId);
+  }
   if (params.limit !== undefined) qs.set("limit", String(params.limit));
   if (params.offset !== undefined) qs.set("offset", String(params.offset));
   const query = qs.toString();
